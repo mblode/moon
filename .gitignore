@@ -1,0 +1,32 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependency directories
+node_modules/
+
+# Build output
+dist/
+build/
+public/build/ # Common in frameworks like Laravel that use Vite for assets
+
+# Vite specific
+.vite/ # Vite's dependency cache and pre-bundling output
+.env.local # Local environment variables, often containing sensitive data
+.env.*.local # Other local environment files
+
+# Editor/IDE specific files
+.idea/ # IntelliJ IDEA
+.vscode/ # VS Code
+.DS_Store # macOS
+Thumbs.db # Windows
+
+# Temporary files
+*.tmp
+*.swp
+*.bak
