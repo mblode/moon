@@ -181,24 +181,24 @@ function MoonMesh(props: Props) {
 
       {/* LUNAR LIGHTING: Harsh shadows due to no atmosphere */}
 
-      {/* Ambient light to show lunar surface detail in shadows */}
-      <ambientLight intensity={0.05} />
+      <ambientLight intensity={0.1} />
 
       {/* Sun light - creates harsh, well-defined shadows like on the Moon */}
       <directionalLight
         ref={light}
-        intensity={3} // Balanced sun intensity for proper lunar gray
+        intensity={3} // Extreme sun intensity for maximum contrast
         castShadow={true}
-        shadow-mapSize-width={4096} // Higher resolution for sharp shadows
-        shadow-mapSize-height={4096}
-        shadow-camera-near={0.1}
-        shadow-camera-far={100}
-        shadow-camera-left={-2}
-        shadow-camera-right={2}
-        shadow-camera-top={2}
-        shadow-camera-bottom={-2}
+        shadow-mapSize-width={8192} // Ultra high resolution for razor-sharp shadows
+        shadow-mapSize-height={8192}
+        shadow-camera-near={0.01}
+        shadow-camera-far={200}
+        shadow-camera-left={-1.5}
+        shadow-camera-right={1.5}
+        shadow-camera-top={1.5}
+        shadow-camera-bottom={-1.5}
         shadow-radius={0} // No shadow softening - harsh edges
-        shadow-bias={-0.0001} // Prevent shadow acne
+        shadow-bias={0} // No bias - raw, unfiltered shadows
+        shadow-normalBias={0}
       />
     </group>
   );
@@ -210,9 +210,15 @@ export default function MoonScene(props: Props) {
       camera={{ position: [0, 0, 3.0], fov: 35, zoom: 0.5 }}
       gl={{
         antialias: true,
-        shadowMap: { enabled: true, type: THREE.BasicShadowMap }, // Sharp, harsh shadows
       }}
       shadows // Enable shadow rendering
+      onCreated={({ gl }) => {
+        gl.shadowMap.enabled = true;
+        gl.shadowMap.type = THREE.BasicShadowMap; // Raw pixelated shadows - zero filtering
+        gl.shadowMap.autoUpdate = true;
+        // Disable any WebGL shadow filtering
+        gl.shadowMap.needsUpdate = true;
+      }}
     >
       <color attach="background" args={["#05060a"]} />
       <Suspense fallback={null}>
