@@ -192,10 +192,6 @@ export default function App() {
           // - moon_mantle_* textures (for cutaway views)
         }}
       />
-
-      <div className="footer">
-        astronomy-engine • react-three-fiber • TypeScript • Vite
-      </div>
     </>
   );
 }
