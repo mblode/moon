@@ -123,61 +123,6 @@ export default function App() {
     <>
       <div className="controls">
         <div>
-          <label>Date & time</label>
-          <input
-            type="datetime-local"
-            value={datetimeLocal}
-            onChange={(e) => set({ datetimeLocal: e.target.value })}
-          />
-        </div>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr auto",
-            gap: "8px",
-            alignItems: "end",
-          }}
-        >
-          <div>
-            <label>Latitude (°)</label>
-            <input
-              type="number"
-              step="0.0001"
-              value={lat}
-              onChange={(e) => set({ lat: Number(e.target.value) })}
-            />
-          </div>
-          <button
-            onClick={requestLocation}
-            disabled={locationStatus === "requesting"}
-            style={{
-              padding: "6px 12px",
-              borderRadius: "6px",
-              border: "1px solid #333",
-              background: locationStatus === "granted" ? "#0d4d0d" : "#333",
-              color: "#ddd",
-              cursor: locationStatus === "requesting" ? "wait" : "pointer",
-              fontSize: "12px",
-            }}
-          >
-            {locationStatus === "requesting"
-              ? "📍"
-              : locationStatus === "granted"
-                ? "✓"
-                : "📍"}
-          </button>
-        </div>
-        <div>
-          <label>Longitude (°)</label>
-          <input
-            type="number"
-            step="0.0001"
-            value={lon}
-            onChange={(e) => set({ lon: Number(e.target.value) })}
-          />
-        </div>
-
-        <div>
           <label>
             Time Travel:{" "}
             {totalScrubHours >= 0 ? `+${totalScrubHours}` : totalScrubHours}h (
@@ -237,8 +182,8 @@ export default function App() {
         inputs={inputs}
         textures={{
           // NASA Lunar Reconnaissance Orbiter (LRO) textures
-          color: "/textures/moon_anorthositic_crust_albedo.jpg",        // Surface albedo/color
-          normal: "/textures/moon_anorthositic_crust_normal.jpg",       // Surface normal mapping
+          color: "/textures/moon_anorthositic_crust_albedo.jpg", // Surface albedo/color
+          normal: "/textures/moon_anorthositic_crust_normal.jpg", // Surface normal mapping
           roughness: "/textures/moon_anorthositic_crust_roughness.jpg", // Surface roughness
           displacement: "/textures/moon_lro_lola_dem_colorhillshade.jpg", // Elevation/displacement
           // Additional detail textures available:
