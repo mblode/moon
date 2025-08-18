@@ -342,6 +342,9 @@ export function solveMoon(i: Inputs): MoonSolution {
   // ===============================
   let phaseName = "Unknown";
   let phaseEmoji = "";
+  
+  // Southern Hemisphere sees Moon upside down - flip crescents
+  const isSouthernHemisphere = i.lat < 0;
 
   if (illumFraction < 0.01) {
     phaseName = "New Moon";
@@ -351,13 +354,28 @@ export function solveMoon(i: Inputs): MoonSolution {
     phaseEmoji = "🌕";
   } else if (Math.abs(illumFraction - 0.5) < 0.05) {
     phaseName = isWaxing ? "First Quarter" : "Last Quarter";
-    phaseEmoji = isWaxing ? "🌓" : "🌗";
+    // Flip quarters for Southern Hemisphere
+    if (isSouthernHemisphere) {
+      phaseEmoji = isWaxing ? "🌗" : "🌓";
+    } else {
+      phaseEmoji = isWaxing ? "🌓" : "🌗";
+    }
   } else if (illumFraction < 0.5) {
     phaseName = isWaxing ? "Waxing Crescent" : "Waning Crescent";
-    phaseEmoji = isWaxing ? "🌒" : "🌘";
+    // Flip crescents for Southern Hemisphere
+    if (isSouthernHemisphere) {
+      phaseEmoji = isWaxing ? "🌘" : "🌒";
+    } else {
+      phaseEmoji = isWaxing ? "🌒" : "🌘";
+    }
   } else {
     phaseName = isWaxing ? "Waxing Gibbous" : "Waning Gibbous";
-    phaseEmoji = isWaxing ? "🌔" : "🌖";
+    // Flip gibbous for Southern Hemisphere
+    if (isSouthernHemisphere) {
+      phaseEmoji = isWaxing ? "🌖" : "🌔";
+    } else {
+      phaseEmoji = isWaxing ? "🌔" : "🌖";
+    }
   }
 
   return {
