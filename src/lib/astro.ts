@@ -1,13 +1,25 @@
-import * as AE from "astronomy-engine";
+import {
+  Body,
+  EclipticLongitude,
+  Equator,
+  GeoVector,
+  Illumination,
+  Libration,
+  MakeTime,
+  Observer,
+  RotationAxis,
+  SiderealTime,
+  type Vector,
+} from "astronomy-engine";
 
-export type Inputs = {
+export interface Inputs {
   date: Date;
   lat: number;
   lon: number;
   elev?: number;
-};
+}
 
-export type MoonSolution = {
+export interface MoonSolution {
   // Direction to place the directional light in THREE coordinates (unit vector)
   sunDir: [number, number, number];
 
@@ -41,14 +53,14 @@ export type MoonSolution = {
   // selenographic libration for orientation
   mlat: number; // degrees
   mlon: number; // degrees
-};
+}
 
 /* --- Helpers --- */
-function norm([x, y, z]: [number, number, number]): [number, number, number] {
+function _norm([x, y, z]: [number, number, number]): [number, number, number] {
   const m = Math.hypot(x, y, z) || 1;
   return [x / m, y / m, z / m];
 }
-function toTuple(v: AE.Vector): [number, number, number] {
+function toTuple(v: Vector): [number, number, number] {
   return [v.x, v.y, v.z];
 }
 function dot(a: [number, number, number], b: [number, number, number]) {
@@ -68,7 +80,7 @@ function normalizeVec(a: [number, number, number]) {
 
 function equatorialToVector(
   ra_hours: number,
-  dec_deg: number,
+  dec_deg: number
 ): [number, number, number] {
   const ra_rad = (ra_hours * Math.PI) / 12;
   const dec_rad = (dec_deg * Math.PI) / 180;
@@ -83,43 +95,43 @@ function equatorialToVector(
 /**
  * MOON PHASE PHYSICS AND CALCULATION EXPLANATION
  * =============================================
- * 
+ *
  * FUNDAMENTAL PRINCIPLES:
  * 1. The Moon is TIDALLY LOCKED - it rotates exactly once per orbit (27.3 days)
  *    so the same side always faces Earth
  * 2. Moon phases result from changing Sun-Moon-Earth GEOMETRY, not moon rotation
- * 3. The Sun always illuminates half the Moon; phases show how much of that 
+ * 3. The Sun always illuminates half the Moon; phases show how much of that
  *    illuminated half is visible from Earth
  * 4. New Moon: Moon between Earth-Sun (dark side toward us)
  *    Full Moon: Earth between Moon-Sun (bright side toward us)
- * 
+ *
  * ASTRONOMY ENGINE APPROACH:
  * - Calculate precise Sun and Moon positions in 3D space
- * - Determine lighting direction (Moon → Sun vector) 
+ * - Determine lighting direction (Moon → Sun vector)
  * - Compute apparent orientation as seen from observer location
  * - Apply libration effects (small wobbles) for realism
- * 
+ *
  * This function returns vectors and angles needed to render accurate moon phases
  * in Three.js, keeping moon tidally locked while varying sun direction.
  */
 export function solveMoon(i: Inputs): MoonSolution {
   const elev = i.elev ?? 0;
-  const obs = new AE.Observer(i.lat, i.lon, elev);
+  const obs = new Observer(i.lat, i.lon, elev);
 
   // Validate and sanitize the date input
   let validDate = i.date;
-  if (!validDate || isNaN(validDate.getTime())) {
+  if (!validDate || Number.isNaN(validDate.getTime())) {
     validDate = new Date();
   }
 
-  const time = AE.MakeTime(validDate);
+  const time = MakeTime(validDate);
 
   // STEP 1: CALCULATE BASIC PHASE INFORMATION
   // ========================================
   // Get illumination data: how much of moon is lit and phase angle
   // phase_fraction: 0.0 = new moon, 0.5 = quarter, 1.0 = full moon
   // phase_angle: Sun-Moon-Earth angle in degrees (0° = full, 180° = new)
-  const illum = AE.Illumination(AE.Body.Moon, time);
+  const illum = Illumination(Body.Moon, time);
   const illumFraction = illum.phase_fraction;
   const phaseAngleDeg = illum.phase_angle;
 
@@ -128,19 +140,19 @@ export function solveMoon(i: Inputs): MoonSolution {
   // Get geocentric vectors (from Earth center) to Sun and Moon
   // These are in Astronomical Units (AU) in J2000 equatorial coordinates
   // This gives us the fundamental geometry: Earth-Moon-Sun triangle
-  const rES = AE.GeoVector(AE.Body.Sun, time, true);  // Earth → Sun
-  const rEM = AE.GeoVector(AE.Body.Moon, time, true); // Earth → Moon
+  const rES = GeoVector(Body.Sun, time, true); // Earth → Sun
+  const _rEM = GeoVector(Body.Moon, time, true); // Earth → Moon
 
   // STEP 3: OBSERVER'S VIEW OF THE MOON
   // ==================================
   // Calculate moon's position as seen from specific location on Earth
   // This accounts for parallax, atmospheric refraction, and topocentric corrections
-  const moonEquatorial = AE.Equator(AE.Body.Moon, time, obs, true, true);
-  const ra = moonEquatorial.ra;  // Right ascension in hours (0-24)
+  const moonEquatorial = Equator(Body.Moon, time, obs, true, true);
+  const ra = moonEquatorial.ra; // Right ascension in hours (0-24)
   const dec = moonEquatorial.dec; // Declination in degrees (-90 to +90)
 
   // Convert distance from AU to kilometers for practical use
-  const AU_KM = 149597870.7;
+  const AU_KM = 149_597_870.7;
   const distanceKm = (moonEquatorial.dist ?? 0) * AU_KM;
 
   // STEP 4: LIBRATION EFFECTS (TIDAL LOCKING WOBBLES)
@@ -150,27 +162,27 @@ export function solveMoon(i: Inputs): MoonSolution {
   // - Latitudinal: ±6°50' due to 6.7° axial tilt
   // - Physical: tiny real oscillations from gravitational perturbations
   // mlat/mlon represent these wobbles in selenographic coordinates
-  const lib = AE.Libration(time);
+  const lib = Libration(time);
   const mlat = lib.mlat; // Latitudinal libration in degrees
   const mlon = lib.mlon; // Longitudinal libration in degrees
 
   // STEP 5: PARALLACTIC ANGLE CALCULATION
   // ====================================
-  // The parallactic angle describes how the moon appears rotated 
+  // The parallactic angle describes how the moon appears rotated
   // due to the observer's location on Earth's surface
   // Important for precise orientation at different latitudes/times
-  
+
   // Convert to local sidereal time to get moon's position in local sky
-  const gst = AE.SiderealTime(time); // Greenwich sidereal time in hours
+  const gst = SiderealTime(time); // Greenwich sidereal time in hours
   const lst = (((gst + i.lon / 15) % 24) + 24) % 24; // Local sidereal time
-  
+
   // Hour angle: how far west the moon is from the meridian
   const H = ((((lst - ra) % 24) + 24) % 24) * (Math.PI / 12.0); // Convert to radians
 
   // Observer's latitude and moon's declination in radians
   const phi = (i.lat * Math.PI) / 180.0;
   const decRad = (dec * Math.PI) / 180.0;
-  
+
   // Trigonometric components for parallactic angle calculation
   const sinH = Math.sin(H);
   const cosH = Math.cos(H);
@@ -187,7 +199,7 @@ export function solveMoon(i: Inputs): MoonSolution {
   // STEP 6: COORDINATE SYSTEM SETUP
   // ===============================
   // Set up 3D coordinate system for bright limb calculation
-  
+
   // Unit vector from observer to Moon (our viewing direction)
   const uM = equatorialToVector(ra, dec);
 
@@ -201,7 +213,7 @@ export function solveMoon(i: Inputs): MoonSolution {
   // ==============================================================
   // To determine where features appear on the moon's disk as seen from Earth,
   // we project 3D directions onto the 2D plane perpendicular to our line of sight
-  
+
   // Project celestial north onto the plane of the moon's apparent disk
   // (Remove the component along the line of sight to get the projection)
   let n: [number, number, number] = [
@@ -220,7 +232,7 @@ export function solveMoon(i: Inputs): MoonSolution {
   // =============================================
   // The bright limb is the edge of the illuminated portion of the moon
   // Its position angle determines where the terminator (day/night boundary) appears
-  
+
   // Project the Sun's direction onto the moon's apparent disk
   // This shows where the Sun "appears" relative to the moon from our viewpoint
   let v: [number, number, number] = [
@@ -235,7 +247,7 @@ export function solveMoon(i: Inputs): MoonSolution {
   const brightLimbAngleRad = Math.atan2(dot(east, v), dot(n, v));
 
   // --- Moon's north pole position angle ---
-  const axis = AE.RotationAxis(AE.Body.Moon, time);
+  const axis = RotationAxis(Body.Moon, time);
   const poleRa = axis.ra; // hours
   const poleDec = axis.dec; // degrees
   const uP = equatorialToVector(poleRa, poleDec);
@@ -255,31 +267,33 @@ export function solveMoon(i: Inputs): MoonSolution {
   // ========================================
   // Critical for accurate phase naming - determines if moon is growing or shrinking
   // Uses ecliptic longitude difference to calculate moon's "age" in the cycle
-  
+
   let isWaxing = true; // Default fallback
   try {
     // Get ecliptic longitudes of Moon and Sun (their positions along the ecliptic)
-    const moonEclLon = AE.EclipticLongitude(AE.Body.Moon, time);
-    const sunEclLon = AE.EclipticLongitude(AE.Body.Sun, time);
-    
+    const moonEclLon = EclipticLongitude(Body.Moon, time);
+    const sunEclLon = EclipticLongitude(Body.Sun, time);
+
     // Calculate elongation: how far ahead the Moon is of the Sun in orbit
     let elongationDeg = moonEclLon - sunEclLon;
     elongationDeg = ((elongationDeg % 360) + 360) % 360; // Normalize to 0-360°
-    
+
     // Convert to "moon age" in days since new moon
-    const synodicMonth = 29.530588853; // Average length of lunar phase cycle
+    const synodicMonth = 29.530_588_853; // Average length of lunar phase cycle
     const moonAgeDays = (elongationDeg / 360) * synodicMonth;
-    
+
     // Waxing: 0-14.77 days (growing), Waning: 14.77-29.53 days (shrinking)
     isWaxing = moonAgeDays <= synodicMonth / 2;
-  } catch (error) {
+  } catch (_error) {
     // Fallback: Use a more sophisticated approach based on time progression
     // Calculate days since a known new moon to determine waxing/waning
-    const knownNewMoon = new Date('2000-01-06T18:14:00.000Z'); // J2000 reference new moon
-    const synodicMonth = 29.530588853; // days
-    const daysSinceRef = (validDate.getTime() - knownNewMoon.getTime()) / (1000 * 60 * 60 * 24);
-    const cyclePosition = ((daysSinceRef % synodicMonth) + synodicMonth) % synodicMonth;
-    
+    const knownNewMoon = new Date("2000-01-06T18:14:00.000Z"); // J2000 reference new moon
+    const synodicMonth = 29.530_588_853; // days
+    const daysSinceRef =
+      (validDate.getTime() - knownNewMoon.getTime()) / (1000 * 60 * 60 * 24);
+    const cyclePosition =
+      ((daysSinceRef % synodicMonth) + synodicMonth) % synodicMonth;
+
     // Waxing: 0-14.77 days, Waning: 14.77-29.53 days
     isWaxing = cyclePosition <= synodicMonth / 2;
   }
@@ -288,53 +302,55 @@ export function solveMoon(i: Inputs): MoonSolution {
   // =====================================================
   // CRITICAL: Create sun direction based on orbital phase geometry
   // The key insight: moon phases result from Moon's position relative to Sun-Earth line
-  
+
   // Use phase angle to determine orbital position and create rotating sun direction
   // Phase angle: 0° = full moon, 180° = new moon
   // We need to convert this to elongation angle for proper geometry
-  
+
   // Calculate elongation using a more robust approach
   // Use the cycle position from our time-based calculation for better continuity
   let elongationDeg: number;
-  
+
   // Calculate cycle position directly from date for smooth transitions
-  const knownNewMoon = new Date('2000-01-06T18:14:00.000Z'); // J2000 reference new moon
-  const synodicMonth = 29.530588853; // days
-  const daysSinceRef = (validDate.getTime() - knownNewMoon.getTime()) / (1000 * 60 * 60 * 24);
-  const cyclePosition = ((daysSinceRef % synodicMonth) + synodicMonth) % synodicMonth;
-  
+  const knownNewMoon = new Date("2000-01-06T18:14:00.000Z"); // J2000 reference new moon
+  const synodicMonth = 29.530_588_853; // days
+  const daysSinceRef =
+    (validDate.getTime() - knownNewMoon.getTime()) / (1000 * 60 * 60 * 24);
+  const cyclePosition =
+    ((daysSinceRef % synodicMonth) + synodicMonth) % synodicMonth;
+
   // Convert cycle position to elongation angle (0-360°)
   elongationDeg = (cyclePosition / synodicMonth) * 360;
-  
+
   // Ensure smooth progression: 0° = new moon, 180° = full moon, 360° = new moon again
   elongationDeg = ((elongationDeg % 360) + 360) % 360;
-  
+
   // Convert to radians for trigonometry
   const elongationRad = (elongationDeg * Math.PI) / 180;
-  
+
   // ORBITAL PHASE GEOMETRY:
   // 0° = New Moon (Sun behind Moon from Earth's perspective)
-  // 90° = First Quarter (Sun to the side)  
+  // 90° = First Quarter (Sun to the side)
   // 180° = Full Moon (Sun in front of Moon from Earth's perspective)
   // 270° = Last Quarter (Sun to the other side)
-  
+
   // Create sun direction that rotates around Moon based on orbital position
   // This simulates how the Sun appears to move relative to Moon during orbit
   const sunDir: [number, number, number] = [
-    Math.cos(elongationRad),  // X: varies from +1 (new) to -1 (full)
-    0,                        // Y: keep in orbital plane
-    Math.sin(elongationRad)   // Z: varies to create side lighting for quarters
+    Math.cos(elongationRad), // X: varies from +1 (new) to -1 (full)
+    0, // Y: keep in orbital plane
+    Math.sin(elongationRad), // Z: varies to create side lighting for quarters
   ];
-  
+
   // DEBUG: Log elongation calculation more frequently to catch discontinuities
   if (Math.random() < 0.02) {
-    console.log('🔄 Elongation Debug:', {
-      date: validDate.toISOString().slice(0,16),
-      phaseAngle: phaseAngleDeg.toFixed(1) + '°',
+    console.log("🔄 Elongation Debug:", {
+      date: validDate.toISOString().slice(0, 16),
+      phaseAngle: `${phaseAngleDeg.toFixed(1)}°`,
       isWaxing,
-      elongation: elongationDeg.toFixed(1) + '°',
+      elongation: `${elongationDeg.toFixed(1)}°`,
       sunDir: `[${sunDir[0].toFixed(2)}, ${sunDir[1].toFixed(2)}, ${sunDir[2].toFixed(2)}]`,
-      illumination: (illumFraction * 100).toFixed(1) + '%'
+      illumination: `${(illumFraction * 100).toFixed(1)}%`,
     });
   }
 
@@ -342,7 +358,7 @@ export function solveMoon(i: Inputs): MoonSolution {
   // ===============================
   let phaseName = "Unknown";
   let phaseEmoji = "";
-  
+
   // Southern Hemisphere sees Moon upside down - flip crescents
   const isSouthernHemisphere = i.lat < 0;
 
@@ -400,20 +416,26 @@ export function solveMoon(i: Inputs): MoonSolution {
  */
 export async function getLocationName(
   lat: number,
-  lon: number,
+  lon: number
 ): Promise<string> {
   try {
     const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`,
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`
     );
     const data = await response.json();
     if (data.address) {
       const { city, town, village, county, state, country } = data.address;
       const place = city || town || village || county;
       const region = state || country;
-      if (place && region) return `${place}, ${region}`;
-      if (place) return place;
-      if (region) return region;
+      if (place && region) {
+        return `${place}, ${region}`;
+      }
+      if (place) {
+        return place;
+      }
+      if (region) {
+        return region;
+      }
     }
     return `${lat.toFixed(4)}°, ${lon.toFixed(4)}°`;
   } catch (err) {

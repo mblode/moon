@@ -1,9 +1,9 @@
-import React, { useMemo, useState, useEffect } from "react";
-import MoonScene from "./components/MoonScene";
-import { Inputs, solveMoon, getLocationName } from "./lib/astro";
+import { useEffect, useMemo, useState } from "react";
 import { create } from "zustand";
+import MoonScene from "./components/moon-scene";
+import { getLocationName, type Inputs, solveMoon } from "./lib/astro";
 
-type Store = {
+interface Store {
   lat: number;
   lon: number;
   datetimeLocal: string;
@@ -16,13 +16,13 @@ type Store = {
     | "unavailable";
   locationName: string;
   set: (p: Partial<Store>) => void;
-};
+}
 
 const nowLocalISO = () => {
   const d = new Date();
   // round to minute
   d.setSeconds(0, 0);
-  const tz = -d.getTimezoneOffset();
+  const _tz = -d.getTimezoneOffset();
   const pad = (n: number) => String(n).padStart(2, "0");
   const iso = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   return iso;
@@ -39,13 +39,15 @@ const useStore = create<Store>((set) => ({
 }));
 
 export default function App() {
-  const { lat, lon, datetimeLocal, speed, locationStatus, locationName, set } =
+  const { lat, lon, datetimeLocal, locationStatus, locationName, set } =
     useStore();
   const [scrubIncrement, setScrubIncrement] = useState(0); // In 2-hour increments
 
   // Request geolocation on component mount
   useEffect(() => {
-    if (locationStatus !== "unknown") return;
+    if (locationStatus !== "unknown") {
+      return;
+    }
 
     if (!navigator.geolocation) {
       set({ locationStatus: "unavailable" });
@@ -75,13 +77,13 @@ export default function App() {
       },
       {
         enableHighAccuracy: false,
-        timeout: 10000,
-        maximumAge: 300000, // 5 minutes
-      },
+        timeout: 10_000,
+        maximumAge: 300_000, // 5 minutes
+      }
     );
   }, [locationStatus, set]);
 
-  const requestLocation = () => {
+  const _requestLocation = () => {
     set({ locationStatus: "unknown" });
   };
 
@@ -98,6 +100,17 @@ export default function App() {
   const scrubDays = Math.floor(Math.abs(totalScrubHours) / 24);
   const scrubHours = Math.abs(totalScrubHours) % 24;
 
+  // Format time display without nested ternary
+  const getTimeDisplay = () => {
+    if (scrubDays > 0) {
+      return `+${scrubDays}d ${scrubHours}h`;
+    }
+    if (scrubDays < 0) {
+      return `-${scrubDays}d ${scrubHours}h`;
+    }
+    return `${scrubHours}h`;
+  };
+
   const inputs: Inputs = useMemo(() => ({ date, lat, lon }), [date, lat, lon]);
   const sol = useMemo(() => {
     try {
@@ -109,7 +122,7 @@ export default function App() {
         sunDir: [1, 0, 0] as [number, number, number],
         illumFraction: 0.5,
         phaseAngleDeg: 90,
-        distanceKm: 384400,
+        distanceKm: 384_400,
         parallacticAngleRad: 0,
         ra: 0,
         dec: 0,
@@ -123,23 +136,19 @@ export default function App() {
     <>
       <div className="controls">
         <div>
-          <label>
+          <label htmlFor="time-travel-slider">
             Time Travel:{" "}
             {totalScrubHours >= 0 ? `+${totalScrubHours}` : totalScrubHours}h (
-            {scrubDays > 0
-              ? `+${scrubDays}d ${scrubHours}h`
-              : scrubDays < 0
-                ? `-${scrubDays}d ${scrubHours}h`
-                : `${scrubHours}h`}
-            )
+            {getTimeDisplay()})
           </label>
           <input
-            type="range"
+            id="time-travel-slider"
+            max={+360}
             min={-360} // -30 days in 2-hour increments
-            max={+360} // +30 days in 2-hour increments
-            value={scrubIncrement}
-            onChange={(e) => setScrubIncrement(Number(e.target.value))}
+            onChange={(e) => setScrubIncrement(Number(e.target.value))} // +30 days in 2-hour increments
             style={{ width: "100%" }}
+            type="range"
+            value={scrubIncrement}
           />
           <div
             style={{
