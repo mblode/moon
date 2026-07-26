@@ -13,18 +13,28 @@ node_modules/
 # Build output
 dist/
 build/
-public/build/ # Common in frameworks like Laravel that use Vite for assets
+# Common in frameworks like Laravel that use Vite for assets
+public/build/
 
 # Vite specific
-.vite/ # Vite's dependency cache and pre-bundling output
-.env.local # Local environment variables, often containing sensitive data
-.env.*.local # Other local environment files
+# Vite's dependency cache and pre-bundling output
+.vite/
+.vercel/
+
+# Local environment variables, often containing sensitive data
+.env.local
+# Other local environment files
+.env.*.local
 
 # Editor/IDE specific files
-.idea/ # IntelliJ IDEA
-.vscode/ # VS Code
-.DS_Store # macOS
-Thumbs.db # Windows
+# IntelliJ IDEA
+.idea/
+# VS Code
+.vscode/
+# macOS
+.DS_Store
+# Windows
+Thumbs.db
 
 # Temporary files
 *.tmp
