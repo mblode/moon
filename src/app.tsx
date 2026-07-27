@@ -192,10 +192,10 @@ export default function App() {
         inputs={inputs}
         textures={{
           // NASA Lunar Reconnaissance Orbiter (LRO) textures
-          color: "/textures/moon_anorthositic_crust_albedo.jpg", // Surface albedo/color
-          normal: "/textures/moon_anorthositic_crust_normal.jpg", // Surface normal mapping
-          roughness: "/textures/moon_anorthositic_crust_roughness.jpg", // Surface roughness
-          displacement: "/textures/moon_lro_lola_dem_colorhillshade.jpg", // Elevation/displacement
+          color: "/moon/textures/moon_anorthositic_crust_albedo.jpg", // Surface albedo/color
+          normal: "/moon/textures/moon_anorthositic_crust_normal.jpg", // Surface normal mapping
+          roughness: "/moon/textures/moon_anorthositic_crust_roughness.jpg", // Surface roughness
+          displacement: "/moon/textures/moon_lro_lola_dem_colorhillshade.jpg", // Elevation/displacement
           // Additional detail textures available:
           // - moon_lola_roughness.jpg (alternative roughness)
           // - moon_lola_surface_slope.jpg (slope data)

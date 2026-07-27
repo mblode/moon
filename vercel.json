@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "https://blode.co/moon",
+      "has": [{ "type": "host", "value": "moon.blode.co" }],
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "destination": "https://blode.co/moon/:path*",
+      "has": [{ "type": "host", "value": "moon.blode.co" }],
+      "permanent": true
+    }
+  ]
+}
