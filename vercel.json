@@ -1,44 +1,16 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "headers": [
-    {
-      "source": "/(.*)",
-      "has": [
-        {
-          "type": "header",
-          "key": "x-forwarded-host",
-          "value": ".*\\.zone\\.blode\\.co|.*\\.vercel\\.app"
-        }
-      ],
-      "headers": [
-        {
-          "key": "X-Robots-Tag",
-          "value": "noindex"
-        }
-      ]
-    }
-  ],
   "redirects": [
     {
       "source": "/",
       "destination": "https://blode.co/moon",
-      "has": [
-        {
-          "type": "host",
-          "value": "moon.blode.co"
-        }
-      ],
+      "has": [{ "type": "host", "value": "moon.blode.co" }],
       "permanent": true
     },
     {
       "source": "/:path*",
       "destination": "https://blode.co/moon/:path*",
-      "has": [
-        {
-          "type": "host",
-          "value": "moon.blode.co"
-        }
-      ],
+      "has": [{ "type": "host", "value": "moon.blode.co" }],
       "permanent": true
     }
   ]
