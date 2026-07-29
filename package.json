@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "portless moon vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "prepare": "lefthook install || true",
