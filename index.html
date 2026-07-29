@@ -44,6 +44,57 @@
       content="https://blode.co/moon/opengraph-image.png"
     />
 
+    <!--
+      The copy below lives in index.html rather than in a React component
+      because this is a Vite SPA: index.html is the only markup actually served,
+      and everything inside #root arrives after the bundle runs. Prose about the
+      page belongs in the served HTML.
+    -->
+    <style>
+      .m-about {
+        position: fixed;
+        top: 12px;
+        right: 12px;
+        z-index: 1000;
+        width: min(360px, calc(100vw - 24px));
+        max-height: calc(100dvh - 24px);
+        overflow-y: auto;
+        box-sizing: border-box;
+        padding: 14px 16px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        background: rgba(20, 20, 20, 0.9);
+        backdrop-filter: blur(6px);
+        color: #ddd;
+        font:
+          13px/1.6 system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          sans-serif;
+      }
+
+      .m-about p {
+        margin: 0 0 10px;
+      }
+
+      .m-about p:last-child {
+        margin-bottom: 0;
+      }
+
+      /* Narrow screens: the controls already own the top of the viewport, so
+         drop out of the corner and let the page scroll instead of stacking two
+         panels on top of each other. */
+      @media (max-width: 900px) {
+        .m-about {
+          position: static;
+          width: auto;
+          max-height: none;
+          margin: 12px;
+        }
+      }
+    </style>
+
     <link rel="preconnect" href="https://r.blode.co" />
     <script>
       !(function (t, e) {
@@ -127,6 +178,37 @@
       Tonight's moon phase, rendered in 3D
     </h1>
     <div id="root"></div>
+
+    <aside class="m-about">
+      <p>
+        This is the moon as it is right now, from where you are standing.
+        astronomy-engine works out the direction of the sun, the illuminated
+        fraction, the phase angle and the orientation of the bright limb for
+        your latitude, longitude and the current minute. Those numbers place a
+        single directional light around a sphere carrying NASA Lunar
+        Reconnaissance Orbiter maps: albedo for the colour, a normal map for the
+        relief, roughness, and a LOLA elevation model driving the displacement.
+      </p>
+
+      <p>
+        The moon never rotates to make a phase. The sphere is set to one fixed
+        orientation and only the light moves around it, which is how phases
+        physically happen. It also means the terminator falls across real
+        craters instead of across a texture that has been spun into position,
+        and that the near side stays the near side, because the real moon is
+        tidally locked and keeps one face to us.
+      </p>
+
+      <p>
+        Orientation is not decoration either. A waxing crescent leans one way
+        from Melbourne and the other way from London, so the page asks for your
+        location and reverse-geocodes it for the label. Decline and it falls
+        back to Melbourne. Drag the time travel slider to move up to thirty days
+        either side of now in two-hour steps, and watch the terminator sweep
+        across the surface rather than around it.
+      </p>
+    </aside>
+
     <a
       href="https://blode.co"
       rel="author"
