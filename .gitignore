@@ -40,3 +40,11 @@ Thumbs.db
 *.tmp
 *.swp
 *.bak
+
+# Next.js
+.next/
+next-env.d.ts
+.vercel
+
+# TypeScript incremental build info
+tsconfig.tsbuildinfo

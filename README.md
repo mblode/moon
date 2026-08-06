@@ -20,14 +20,16 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173).
+Open [http://localhost:3000/moon](http://localhost:3000/moon). The app is served under `/moon` because blode.co proxies that path to this deployment.
 
 Your city is guessed from the browser timezone, so nothing is requested on load. Pick "Use my location" for your exact latitude, or choose a city from the list.
 
 ## Tech Stack
 
+- [Next.js](https://nextjs.org/) — App Router, React Compiler, Cache Components
 - [React](https://react.dev/) — UI framework
-- [Vite](https://vitejs.dev/) — build tool and dev server
+- [Tailwind CSS](https://tailwindcss.com/) + [Blode UI](https://blode.co/ui) — styling and components
+- [Glide](https://github.com/mblode/glide) — variable typeface
 - [Three.js](https://threejs.org/) + [React Three Fiber](https://docs.pmnd.rs/react-three-fiber) — 3D rendering
 - [@react-three/drei](https://github.com/pmndrs/drei) — orbit controls and helpers
 - [astronomy-engine](https://github.com/cosinekitty/astronomy) — precise lunar and solar position calculations
@@ -51,9 +53,9 @@ already baked into it and is not a height field.
 ## Development
 
 ```bash
-npm run dev          # Start dev server on port 5173
+npm run dev          # Start dev server on http://localhost:3000/moon
 npm run build        # Type-check and build for production
-npm run preview      # Preview the production build locally
+npm run start        # Serve the production build locally
 npm run lint         # Check for lint and format issues
 npm run format       # Auto-fix lint and format issues
 npm run check-types  # TypeScript type check only
