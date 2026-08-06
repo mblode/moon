@@ -24,6 +24,11 @@ const nextConfig: NextConfig = {
         source: "/textures/:path*",
         headers: [{ key: "Cache-Control", value: IMMUTABLE }],
       },
+      {
+        // Not immutable: these two can be re-cut in place without a new URL.
+        source: "/:path(opengraph-image.jpg|avatar-sm.png)",
+        headers: [{ key: "Cache-Control", value: "public, max-age=604800" }],
+      },
     ]);
   },
 };
