@@ -92,7 +92,7 @@ export default function Page() {
 
       <MoonApp />
 
-      <main className="full-bleed-bg relative z-3 mx-auto max-w-[62ch] px-4 py-8 text-[1.0625rem]/[1.65]">
+      <main className="full-bleed-bg relative z-3 mx-auto max-w-[62ch] px-gutter py-8 text-[1.0625rem]/[1.65]">
         <p className="mb-6 text-pretty text-[1.4375rem]/[1.35] tracking-[-0.011em]">
           The moon as it looks right now, from where you are standing.
         </p>
@@ -145,7 +145,7 @@ export default function Page() {
         </p>
       </main>
 
-      <footer className="full-bleed-bg relative z-3 flex items-center justify-center gap-1 px-4 pb-8 text-muted-foreground text-sm">
+      <footer className="full-bleed-bg relative z-3 flex flex-wrap items-center justify-center gap-1 px-gutter pb-[calc(2rem+env(safe-area-inset-bottom))] text-muted-foreground text-sm">
         Crafted by
         <a
           className="flex items-center gap-2 rounded-full px-2 py-1 transition-colors hover:text-foreground"

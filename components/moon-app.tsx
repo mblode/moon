@@ -184,8 +184,11 @@ export function MoonApp() {
       : `${compassOf(sol.azimuthDeg)}, ${Math.round(sol.altitudeDeg)}° up`;
 
   return (
-    <div className="grid min-h-dvh grid-rows-[48px_1fr_auto] md:block">
-      <header className="scrim-top z-2 flex items-center justify-end px-4 md:fixed md:inset-x-0 md:top-0">
+    // grid-cols-1 rather than the implicit auto column: an auto track is
+    // minmax(auto, max-content) and never clamps to the container, so the
+    // console's 640px cap became the page's width and overflowed every phone.
+    <div className="grid min-h-dvh grid-cols-1 grid-rows-[auto_1fr_auto] overlay:block">
+      <header className="scrim-top z-2 flex min-h-12 items-center justify-end px-gutter pt-[env(safe-area-inset-top)] overlay:fixed overlay:inset-x-0 overlay:top-0">
         <a
           className="inline-flex items-center rounded-full p-2 text-muted-foreground transition-colors hover:text-foreground"
           href="https://github.com/mblode/moon"
@@ -200,7 +203,7 @@ export function MoonApp() {
       <div
         aria-label={`The moon, ${sol.phaseName.toLowerCase()}, ${lit}, seen from ${place.name}`}
         className={cn(
-          "relative min-h-0 touch-pan-y select-none transition-opacity duration-700 md:fixed md:inset-0",
+          "relative min-h-0 touch-pan-y select-none transition-opacity duration-700 overlay:fixed overlay:inset-0",
           ready ? "opacity-100" : "opacity-0",
           drag.current?.on ? "cursor-grabbing" : "cursor-grab"
         )}
@@ -213,8 +216,12 @@ export function MoonApp() {
         {ready && <MoonScene sol={sol} textures={TEXTURES} />}
       </div>
 
-      <div className="scrim-bottom z-2 grid justify-items-center gap-3 px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] text-center md:fixed md:inset-x-0 md:bottom-0 md:pb-6">
-        <div className="relative w-full max-w-[640px]">
+      <div className="scrim-bottom z-2 grid grid-cols-1 justify-items-center gap-3 px-gutter pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] text-center overlay:fixed overlay:inset-x-0 overlay:bottom-0 overlay:pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+        {/* Exactly the button's own width, so the readout clears it instead of
+            being overlapped on a small phone. The button is absolutely
+            positioned against the padding box, so this does not move it, and
+            the icon's own inset supplies the visual gap. */}
+        <div className="relative w-full max-w-[640px] px-9">
           <p className="m-0 text-[1.375rem] tabular-nums tracking-[-0.011em]">
             {sol.phaseName} <span className="px-[0.15em] opacity-40">·</span>{" "}
             {lit}
