@@ -7,6 +7,7 @@ import {
   type DirectionalLight,
   Matrix4,
   type Mesh,
+  type PerspectiveCamera,
   SRGBColorSpace,
   Vector2,
   Vector3,
@@ -52,6 +53,40 @@ const TEXTURE_FIX = new Matrix4().makeBasis(
     exactly the albedo map's value. */
 const SUN_INTENSITY = Math.PI;
 const LIGHT_DISTANCE = 100;
+
+/** Framing for a viewport at least as wide as it is tall. */
+const CAMERA_Z = 5.5;
+/** Disk radius as a share of the half-extent of the narrower axis. */
+const DISK_FILL = 0.8;
+
+/**
+ * The fov is vertical, so on a phone held upright the disk grows with the
+ * height until it is all but touching both edges: 92 percent of the width at
+ * 390x844. Backing the camera off restores the margin.
+ *
+ * Only viewports taller than they are wide move. min(1, aspect) makes the
+ * required distance fall below CAMERA_Z everywhere else, so a laptop keeps the
+ * hand-tuned framing exactly.
+ */
+function FitCamera() {
+  const camera = useThree((s) => s.camera) as PerspectiveCamera;
+  const size = useThree((s) => s.size);
+  const invalidate = useThree((s) => s.invalidate);
+
+  useLayoutEffect(() => {
+    const halfFov = (camera.fov * Math.PI) / 360;
+    const aspect = size.width / size.height;
+    camera.position.z = Math.max(
+      CAMERA_Z,
+      1 / (DISK_FILL * Math.tan(halfFov) * Math.min(1, aspect))
+    );
+    // Only the position changes, so the projection matrix still holds; r3f
+    // rewrites it on resize. The frameloop is on demand, so ask for a frame.
+    invalidate();
+  }, [camera, size, invalidate]);
+
+  return null;
+}
 
 function Lighting({ sol }: { sol: MoonSolution }) {
   const light = useRef<DirectionalLight>(null);
@@ -158,8 +193,9 @@ export default function MoonScene({ sol, textures }: Props) {
   return (
     <Canvas
       // 5.5 units back at 35 degrees leaves the disk clear of the console on a
-      // laptop viewport, with black around it.
-      camera={{ fov: 35, position: [0, 0, 5.5] }}
+      // laptop viewport, with black around it. FitCamera holds that margin on
+      // taller-than-wide viewports, where the vertical fov would crop the disk.
+      camera={{ fov: 35, position: [0, 0, CAMERA_Z] }}
       // `flat` disables ACES tone mapping, which crushes the midtones of a
       // single-light matte surface. Nothing here has any HDR range to map.
       dpr={[1, 2]}
@@ -168,6 +204,7 @@ export default function MoonScene({ sol, textures }: Props) {
       frameloop="demand"
       gl={{ alpha: true, antialias: true }}
     >
+      <FitCamera />
       <Lighting sol={sol} />
       <Suspense fallback={<PlainMoon sol={sol} />}>
         <TexturedMoon sol={sol} textures={textures} />

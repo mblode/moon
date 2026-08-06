@@ -4,6 +4,12 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* The fixed-overlay layout needs height as well as width. An iPhone in
+   landscape clears 768px but is only about 400px tall, which is not enough to
+   stack a full-bleed stage under a fixed console, so it keeps the flowing
+   layout instead. */
+@custom-variant overlay (@media (min-width: 48rem) and (min-height: 34rem));
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -144,6 +150,14 @@
     @apply font-sans;
   }
 }
+/* The page is viewport-fit: cover, so in landscape the notch eats into one
+   side. Every full-width band uses this instead of px-4 so nothing lands
+   underneath it. */
+@utility px-gutter {
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
 /* ── page-specific ────────────────────────────────────────────────────────
    Only what utilities cannot express: range pseudo-elements, the full-bleed
    backdrop, and the scrims. Everything else is Tailwind in the markup. */
@@ -179,7 +193,11 @@
   .scrubber {
     scrollbar-width: none;
     scroll-snap-type: x mandatory;
-    touch-action: pan-x;
+    /* pan-y as well as pan-x: this is a full-width band sitting in the path
+       down to the prose, and pan-x alone means a thumb landing on it cannot
+       scroll the page at all. The browser axis-locks on the first move, so a
+       sideways drag still scrubs. */
+    touch-action: pan-x pan-y;
     /* Fade the ends so the ruler reads as continuing past the edge. */
     mask-image: linear-gradient(
       to right,
