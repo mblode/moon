@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 
 /**
  * A ruler you scrub sideways, in the manner of the iOS Weather moon view.
@@ -14,9 +20,35 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * will drag to, and a real scroll range keeps native momentum on touch without
  * the usual recentring trick.
  */
-const DAY_PX = 56;
+export const DAY_PX = 56;
 const RANGE_DAYS = 730;
 const TOTAL_DAYS = RANGE_DAYS * 2 + 1;
+
+/**
+ * Both scrub surfaces run on an identically sized track, which is what lets one
+ * mirror the other's scrollLeft verbatim. The leading margin is a percentage of
+ * each scroller's own width, and it cancels out of the mapping below, so the
+ * two stay interchangeable even though the sky is the full viewport and the
+ * ruler is at most 640px.
+ */
+export const TRACK_STYLE = {
+  width: TOTAL_DAYS * DAY_PX,
+  marginInline: "calc(50% - 1px)",
+} as const;
+
+/** Scroll position that centres a day under the needle, and its inverse. */
+export const scrollForDay = (day: number) => (day + RANGE_DAYS) * DAY_PX;
+export const dayForScroll = (scrollLeft: number) =>
+  Math.round(scrollLeft / DAY_PX) - RANGE_DAYS;
+
+/** Lets the sky drive the ruler as if the ruler were being dragged directly. */
+export interface ScrubberHandle {
+  /** Suspend snapping; the caller is about to stream positions in. */
+  beginDrag: () => void;
+  moveTo: (scrollLeft: number) => void;
+  /** Restore snapping and settle onto the nearest whole day. */
+  endDrag: () => void;
+}
 
 const weekday = new Intl.DateTimeFormat(undefined, { weekday: "short" });
 const dayNum = new Intl.DateTimeFormat(undefined, { day: "numeric" });
@@ -25,10 +57,19 @@ interface Props {
   offsetDays: number;
   onOffsetChange: (days: number) => void;
   baseMs: number | null;
+  handleRef?: React.Ref<ScrubberHandle>;
 }
 
-export function TimeScrubber({ offsetDays, onOffsetChange, baseMs }: Props) {
+export function TimeScrubber({
+  offsetDays,
+  onOffsetChange,
+  baseMs,
+  handleRef,
+}: Props) {
   const track = useRef<HTMLDivElement>(null);
+  // True while the sky is streaming positions in. The follow effect below has
+  // to stand down, or it fights the mirror a frame at a time.
+  const externalDrag = useRef(false);
   const frame = useRef(0);
   // Suppresses the scroll handler while we are the ones moving the scroller.
   const settingRef = useRef(false);
@@ -54,7 +95,7 @@ export function TimeScrubber({ offsetDays, onOffsetChange, baseMs }: Props) {
     cancelAnimationFrame(anim.current);
     animating.current = false;
 
-    const to = (days + RANGE_DAYS) * DAY_PX;
+    const to = scrollForDay(days);
     const from = el.scrollLeft;
     const distance = Math.abs(to - from);
     const reduced = window.matchMedia(
@@ -95,6 +136,40 @@ export function TimeScrubber({ offsetDays, onOffsetChange, baseMs }: Props) {
 
   useEffect(() => () => cancelAnimationFrame(anim.current), []);
 
+  // The sky is the same gesture on a bigger surface: it hands us the scroll
+  // position its own scroller reached, momentum and rubber-band included, and
+  // we ride it rather than re-deriving a day and stepping.
+  useImperativeHandle(
+    handleRef,
+    () => ({
+      beginDrag() {
+        const el = track.current;
+        if (!el) {
+          return;
+        }
+        stopAnimation();
+        externalDrag.current = true;
+        el.dataset.dragging = "true";
+      },
+      moveTo(scrollLeft: number) {
+        const el = track.current;
+        if (el) {
+          el.scrollLeft = scrollLeft;
+        }
+      },
+      endDrag() {
+        const el = track.current;
+        if (!el) {
+          return;
+        }
+        externalDrag.current = false;
+        delete el.dataset.dragging;
+        scrollToDay(dayForScroll(el.scrollLeft), true);
+      },
+    }),
+    [scrollToDay, stopAnimation]
+  );
+
   // Centre on mount. Instant: the resting position is 40,000px in, and
   // animating there would fire scroll events all the way and drag the date
   // along with it.
@@ -103,7 +178,7 @@ export function TimeScrubber({ offsetDays, onOffsetChange, baseMs }: Props) {
     if (!el) {
       return;
     }
-    el.scrollLeft = (offsetDays + RANGE_DAYS) * DAY_PX;
+    el.scrollLeft = scrollForDay(offsetDays);
     readyRef.current = true;
     // biome-ignore lint/correctness/useExhaustiveDependencies: mount only
   }, []);
@@ -111,10 +186,14 @@ export function TimeScrubber({ offsetDays, onOffsetChange, baseMs }: Props) {
   // Follow changes that came from outside, i.e. the back-to-now button.
   useEffect(() => {
     const el = track.current;
-    if (!(el && readyRef.current) || animating.current) {
+    if (
+      !(el && readyRef.current) ||
+      animating.current ||
+      externalDrag.current
+    ) {
       return;
     }
-    const current = Math.round(el.scrollLeft / DAY_PX) - RANGE_DAYS;
+    const current = dayForScroll(el.scrollLeft);
     if (current === offsetDays) {
       return;
     }
@@ -177,7 +256,7 @@ export function TimeScrubber({ offsetDays, onOffsetChange, baseMs }: Props) {
     delete el.dataset.dragging;
     el.releasePointerCapture?.(e.pointerId);
     // Settle onto the day the needle is nearest.
-    scrollToDay(Math.round(el.scrollLeft / DAY_PX) - RANGE_DAYS, true);
+    scrollToDay(dayForScroll(el.scrollLeft), true);
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
@@ -220,7 +299,7 @@ export function TimeScrubber({ offsetDays, onOffsetChange, baseMs }: Props) {
       el.scrollLeft += delta;
       clearTimeout(settle);
       settle = window.setTimeout(() => {
-        scrollToDay(Math.round(el.scrollLeft / DAY_PX) - RANGE_DAYS, true);
+        scrollToDay(dayForScroll(el.scrollLeft), true);
       }, 140);
     };
     el.addEventListener("wheel", onWheel, { passive: false });
@@ -291,13 +370,7 @@ export function TimeScrubber({ offsetDays, onOffsetChange, baseMs }: Props) {
       >
         {/* Half the viewport of padding either side so day zero can sit dead
             centre at each end of the range. */}
-        <div
-          className="scrubber__ticks relative h-11"
-          style={{
-            width: TOTAL_DAYS * DAY_PX,
-            marginInline: "calc(50% - 1px)",
-          }}
-        >
+        <div className="scrubber__ticks relative h-11" style={TRACK_STYLE}>
           {labels}
         </div>
       </div>
