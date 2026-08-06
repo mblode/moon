@@ -174,38 +174,48 @@
     );
   }
 
-  /* 44px hit area with a 3px visible track painted underneath. */
-  .scrub-range {
-    appearance: none;
-    width: 100%;
-    height: 44px;
-    background: transparent;
-    cursor: pointer;
+  /* The scrubber. Minor ticks are a repeating gradient rather than 1461 DOM
+     nodes; only the labels near the viewport are rendered. */
+  .scrubber {
+    scrollbar-width: none;
+    scroll-snap-type: x mandatory;
+    touch-action: pan-x;
+    /* Fade the ends so the ruler reads as continuing past the edge. */
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 6%,
+      #000 94%,
+      transparent
+    );
   }
 
-  .scrub-range::-webkit-slider-runnable-track,
-  .scrub-range::-moz-range-track {
-    height: 3px;
-    border-radius: 999px;
-    background: color-mix(in oklab, var(--foreground) 24%, transparent);
+  /* Snapping fights a pointer drag, which sets scrollLeft directly. */
+  .scrubber[data-dragging] {
+    scroll-snap-type: none;
+    scroll-behavior: auto;
   }
 
-  .scrub-range::-webkit-slider-thumb {
-    appearance: none;
-    width: 20px;
-    height: 20px;
-    margin-top: -8.5px;
-    border-radius: 50%;
-    background: var(--foreground);
-    box-shadow: 0 0 0 6px
-      color-mix(in oklab, var(--foreground) 12%, transparent);
+  .scrubber::-webkit-scrollbar {
+    display: none;
   }
 
-  .scrub-range::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-    border: 0;
-    border-radius: 50%;
-    background: var(--foreground);
+  /* Six minor ticks per day, purely for rhythm: they divide evenly into the
+     56px day so they stay aligned with the labelled day ticks above them.
+     Scrubbing still lands on whole days. */
+  .scrubber__ticks {
+    background-image: repeating-linear-gradient(
+      to right,
+      color-mix(in oklab, var(--foreground) 22%, transparent) 0 1px,
+      transparent 1px calc(56px / 6)
+    );
+    background-position: 0 1px;
+    background-repeat: repeat-x;
+    background-size: auto 5px;
+  }
+
+  /* Snap to whole days so the time of day, and so the disk's roll, holds. */
+  .scrubber__ticks > * {
+    scroll-snap-align: center;
   }
 }

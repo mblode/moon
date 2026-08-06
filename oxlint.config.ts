@@ -37,9 +37,10 @@ export default defineConfig({
       rules: { "no-danger": "off" },
     },
     {
-      files: ["components/moon-app.tsx"],
-      // role="img" on the WebGL canvas wrapper is the standard way to give a
-      // canvas an accessible name. There is no <img> to prefer here.
+      files: ["components/moon-app.tsx", "components/time-scrubber.tsx"],
+      // role="img" on the WebGL canvas wrapper, and role="slider" on the
+      // scrubber. Neither has a native tag to prefer: an <input type="range">
+      // cannot be a scroll container, and a <canvas> has no accessible name.
       rules: { "jsx-a11y/prefer-tag-over-role": "off" },
     },
     {
