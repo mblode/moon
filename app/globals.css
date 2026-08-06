@@ -39,16 +39,16 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --color-input-hover: var(--input-hover);
-  --color-placeholder-foreground: var(--placeholder-foreground);
-  --shadow-input: 0 1px 2px 0 #0000000d;
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --shadow-input: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-soft: 0 15px 50px 0 rgba(27, 32, 50, 0.1);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
 }
 
 :root {
@@ -67,6 +67,7 @@
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.97 0.01 17);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
@@ -76,8 +77,6 @@
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
-  --input-hover: oklch(0.87 0 0);
-  --placeholder-foreground: oklch(0.556 0 0);
   /* Blode UI field metrics. The registry's `input` variant compiles to
      rounded-[var(--field-radius)] and h-[var(--field-height-sm)], so without
      these the select trigger renders square and the wrong height. Values taken
@@ -115,10 +114,9 @@
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.58 0.22 27);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --input-hover: oklch(1 0 0 / 28%);
-  --placeholder-foreground: oklch(0.708 0 0);
   --ring: oklch(0.556 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
