@@ -1,7 +1,6 @@
 "use client";
 
-import { MakeTime, SearchMoonPhase } from "astronomy-engine";
-import { GithubIcon } from "blode-icons-react";
+import { ArrowLeftIcon, ArrowRightIcon, GithubIcon } from "blode-icons-react";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -18,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { solveMoon } from "@/lib/astro";
 import { guessPlace, locate, PLACES, type Place } from "@/lib/location";
+import { cn } from "@/lib/utils";
 
 // WebGL has nothing to render on the server, and r3f has no SSR path.
 const MoonScene = dynamic(() => import("@/components/moon-scene"), {
@@ -45,10 +45,6 @@ const dateTimeIn = (tz?: string) =>
     minute: "2-digit",
     timeZone: tz,
   });
-const shortDate = new Intl.DateTimeFormat(undefined, {
-  day: "numeric",
-  month: "short",
-});
 const number = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 });
 
 const COMPASS = [
@@ -149,32 +145,8 @@ export function MoonApp() {
     [date, place.lat, place.lon]
   );
 
-  // Two searches a minute, not one per drag frame. Searching from 15 days back
-  // keeps the hit inside the slider's range.
-  const events = useMemo(() => {
-    if (nowMs === null) {
-      return { full: undefined, next: undefined };
-    }
-    const from = MakeTime(new Date(nowMs - SCRUB_HOURS * HOUR_MS));
-    const at = (lon: number) => SearchMoonPhase(lon, from, 40)?.date;
-    return { full: at(180), next: at(0) };
-  }, [nowMs]);
-
-  const jumpTo = (target?: Date) => {
-    if (target && nowMs !== null) {
-      setOffsetHours(
-        Math.max(
-          -SCRUB_HOURS,
-          Math.min(
-            SCRUB_HOURS,
-            Math.round((target.getTime() - nowMs) / HOUR_MS)
-          )
-        )
-      );
-    }
-  };
-
   const ready = nowMs !== null;
+  const atNow = offsetHours === 0;
   const lit = litLabel(sol.illumFraction, sol.phaseName);
   const dateTime = dateTimeIn(place.tz);
   // Answers "can I see it, and where do I look" without a bare number to decode.
@@ -257,34 +229,24 @@ export function MoonApp() {
           </div>
         </div>
 
-        <div className="flex flex-wrap justify-center gap-2">
-          <Button
-            disabled={offsetHours === 0}
-            onClick={() => setOffsetHours(0)}
-            size="sm"
-            variant="outline"
-          >
-            Now
-          </Button>
-          {events.full && (
-            <Button
-              onClick={() => jumpTo(events.full)}
-              size="sm"
-              variant="outline"
-            >
-              Full moon {shortDate.format(events.full)}
-            </Button>
+        {/* One way back, pointing the way you would travel to get there: left
+            if you are ahead of now, right if you are behind it. Kept mounted
+            and hidden at zero so the console does not resize under the moon. */}
+        <Button
+          aria-hidden={atNow}
+          className={cn(atNow && "invisible")}
+          disabled={atNow}
+          onClick={() => setOffsetHours(0)}
+          size="sm"
+          variant="ghost"
+        >
+          {offsetHours > 0 ? (
+            <ArrowLeftIcon data-icon="inline-start" />
+          ) : (
+            <ArrowRightIcon data-icon="inline-start" />
           )}
-          {events.next && (
-            <Button
-              onClick={() => jumpTo(events.next)}
-              size="sm"
-              variant="outline"
-            >
-              New moon {shortDate.format(events.next)}
-            </Button>
-          )}
-        </div>
+          Now
+        </Button>
 
         <div className="flex flex-wrap items-center justify-center gap-2 text-muted-foreground text-sm">
           <span id="place-label">View from</span>
