@@ -4,6 +4,7 @@ import { ArrowLeftIcon, ArrowRightIcon, GithubIcon } from "blode-icons-react";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { TimeScrubber } from "@/components/time-scrubber";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -24,8 +25,7 @@ const MoonScene = dynamic(() => import("@/components/moon-scene"), {
   ssr: false,
 });
 
-const HOUR_MS = 3_600_000;
-const SCRUB_HOURS = 360; // 15 days either way; a synodic month is 29.5
+const DAY_MS = 86_400_000;
 
 const TEXTURES = {
   color: "/moon/textures/moon_albedo.webp",
@@ -71,19 +71,6 @@ function litLabel(fraction: number, phaseName: string): string {
   return `${Math.min(99, Math.max(1, Math.round(fraction * 100)))}% lit`;
 }
 
-function relativeLabel(hours: number): string {
-  if (hours === 0) {
-    return "now";
-  }
-  const days = Math.floor(Math.abs(hours) / 24);
-  const rest = Math.abs(hours) % 24;
-  const parts = [
-    days ? `${days} day${days === 1 ? "" : "s"}` : "",
-    rest ? `${rest} hour${rest === 1 ? "" : "s"}` : "",
-  ].filter(Boolean);
-  return `${parts.join(" ")} ${hours < 0 ? "ago" : "from now"}`;
-}
-
 export function MoonApp() {
   // Cache Components makes Date.now() during render a hard build error, and a
   // timezone read on the server would not match the client anyway. Both resolve
@@ -94,7 +81,7 @@ export function MoonApp() {
     exact: false,
   });
   const { place } = origin;
-  const [offsetHours, setOffsetHours] = useState(0);
+  const [offsetDays, setOffsetDays] = useState(0);
 
   useEffect(() => {
     setOrigin(guessPlace());
@@ -136,8 +123,8 @@ export function MoonApp() {
   }, [requestLocation]);
 
   const date = useMemo(
-    () => new Date((nowMs ?? 0) + offsetHours * HOUR_MS),
-    [nowMs, offsetHours]
+    () => new Date((nowMs ?? 0) + offsetDays * DAY_MS),
+    [nowMs, offsetDays]
   );
 
   const sol = useMemo(
@@ -146,7 +133,7 @@ export function MoonApp() {
   );
 
   const ready = nowMs !== null;
-  const atNow = offsetHours === 0;
+  const atNow = offsetDays === 0;
   const lit = litLabel(sol.illumFraction, sol.phaseName);
   const dateTime = dateTimeIn(place.tz);
   // Answers "can I see it, and where do I look" without a bare number to decode.
@@ -180,73 +167,45 @@ export function MoonApp() {
       </div>
 
       <div className="scrim-bottom z-2 grid justify-items-center gap-3 px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] text-center md:fixed md:inset-x-0 md:bottom-0 md:pb-6">
-        <p className="m-0 text-[1.375rem] tabular-nums tracking-[-0.011em]">
-          {sol.phaseName} <span className="px-[0.15em] opacity-40">·</span>{" "}
-          {lit}
-        </p>
-        <p className="m-0 text-muted-foreground text-sm tabular-nums">
-          {ready ? dateTime.format(date) : " "}{" "}
-          <span className="px-[0.15em] opacity-40">·</span>{" "}
-          {number.format(sol.distanceKm)} km away
-        </p>
+        <div className="relative w-full max-w-[640px]">
+          <p className="m-0 text-[1.375rem] tabular-nums tracking-[-0.011em]">
+            {sol.phaseName} <span className="px-[0.15em] opacity-40">·</span>{" "}
+            {lit}
+          </p>
+          <p className="m-0 text-muted-foreground text-sm tabular-nums">
+            {ready ? dateTime.format(date) : " "}{" "}
+            <span className="px-[0.15em] opacity-40">·</span>{" "}
+            {number.format(sol.distanceKm)} km away
+          </p>
+
+          {/* Beside the readout rather than under the ruler, pointing the
+              way you would travel to get back. Kept mounted at zero so the
+              console does not resize under the moon. */}
+          <Button
+            aria-label="Back to now"
+            className={cn(
+              "-translate-y-1/2 absolute top-1/2 right-0 rounded-full",
+              atNow && "invisible"
+            )}
+            disabled={atNow}
+            onClick={() => setOffsetDays(0)}
+            size="icon-sm"
+            variant="outline"
+          >
+            {offsetDays > 0 ? <ArrowLeftIcon /> : <ArrowRightIcon />}
+          </Button>
+        </div>
         {/* Only the phase name is announced. React mutates this text node just
             four times per full sweep, so it self-throttles; putting the live
             numbers in here would queue an announcement per drag event. */}
         <output className="sr-only">{sol.phaseName}</output>
 
-        <div className="w-full max-w-[640px]">
-          <label className="sr-only" htmlFor="time">
-            Time
-          </label>
-          <input
-            aria-valuetext={`${ready ? dateTime.format(date) : ""}, ${relativeLabel(offsetHours)}`}
-            // Or a reload restores the previous thumb position and silently
-            // drops you off "now".
-            autoComplete="off"
-            className="scrub-range"
-            id="time"
-            max={SCRUB_HOURS}
-            min={-SCRUB_HOURS}
-            onChange={(e) => setOffsetHours(Number(e.target.value))}
-            // Whole days. The scene frame is zenith-up, so the disk rolls once
-            // per day as the earth turns; scrubbing by hours walks straight
-            // through it and the moon tumbles (up to 54 degrees per hourly step
-            // near transit, ~30 full turns end to end). Holding the time of day
-            // constant leaves only the slow drift, about 45 degrees across the
-            // whole range. The chips still set exact event times; a controlled
-            // value is free to sit off-step.
-            step={24}
-            type="range"
-            value={offsetHours}
-          />
-          <div
-            aria-hidden="true"
-            className="-mt-2 flex justify-between text-[0.6875rem] text-muted-foreground"
-          >
-            <span>−15 days</span>
-            <span>now</span>
-            <span>+15 days</span>
-          </div>
-        </div>
-
-        {/* One way back, pointing the way you would travel to get there: left
-            if you are ahead of now, right if you are behind it. Kept mounted
-            and hidden at zero so the console does not resize under the moon. */}
-        <Button
-          aria-hidden={atNow}
-          className={cn(atNow && "invisible")}
-          disabled={atNow}
-          onClick={() => setOffsetHours(0)}
-          size="sm"
-          variant="ghost"
-        >
-          {offsetHours > 0 ? (
-            <ArrowLeftIcon data-icon="inline-start" />
-          ) : (
-            <ArrowRightIcon data-icon="inline-start" />
-          )}
-          Now
-        </Button>
+        <TimeScrubber
+          key="scrubber"
+          baseMs={nowMs}
+          offsetDays={offsetDays}
+          onOffsetChange={setOffsetDays}
+        />
 
         <div className="flex flex-wrap items-center justify-center gap-2 text-muted-foreground text-sm">
           <span id="place-label">View from</span>

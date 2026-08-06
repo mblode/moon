@@ -105,7 +105,13 @@ redirect there would loop.
   which selenographic longitude sits at u=0 for this specific map product. If the
   maps are ever replaced, recalibrate it from the image rather than by eye.
 - Textures are ~1.9 MB of WebP. Adding more, or dropping in an uncompressed map,
-  is the most likely way to regress load time on this page.
+  is the most likely way to regress load time on this page. The three files in
+  `public/textures/` are `moon_albedo.webp` (LRO surface albedo),
+  `moon_normal.webp` (normal map), and `moon_roughness.webp` (roughness), each
+  2048x1024.
+- **There is deliberately no displacement map.** Relief comes from the normal map.
+  The only LOLA raster to hand was a colour hillshade, which has a fixed sun angle
+  baked into it and is not a height field.
 - **Testing in a background tab shows a black canvas.** Chrome suspends
   `requestAnimationFrame` in hidden tabs, so WebGL never draws while the DOM keeps
   updating. Foreground the window before concluding the scene is broken.

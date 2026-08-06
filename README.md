@@ -1,66 +1,46 @@
-# Moon Phases
+<div align="center">
 
-Real-time 3D lunar visualization with physics-accurate phase rendering, NASA LRO surface textures, and time-travel controls.
+# [Moon Phases](https://blode.co/moon)
 
-## Features
+**See tonight's moon as it looks from where you are, then scrub through the lunar cycle**
 
-- **Accurate moon phases:** Calculates phase, illumination fraction, and sun direction using `astronomy-engine` and real orbital mechanics — not a pre-baked animation.
-- **Tidally locked rendering:** The moon stays fixed as the Sun's direction rotates around it, matching how phases actually work.
-- **NASA LRO textures:** Albedo, normal, and roughness maps sourced from the Lunar Reconnaissance Orbiter for a realistic surface.
-- **Time travel:** Scrub ±15 days a day at a time to watch the lunar cycle play out.
-- **Location-aware:** The scene frame is built on your zenith, so the crescent leans the right way for your latitude. Melbourne is not London.
-- **Verified, not just vibes:** `npm run verify` cross-checks the maths against `Illumination()` and a closed-form Meeus solution implemented independently.
+Pick your city, read the phase and illumination, and watch the crescent lean the way it really leans at your latitude.
 
-## Getting Started
+</div>
 
-```bash
-git clone https://github.com/mblode/moon.git
-cd moon
-npm install
-npm run dev
-```
+## Demo
 
-Open [http://localhost:3000/moon](http://localhost:3000/moon). The app is served under `/moon` because blode.co proxies that path to this deployment.
+A physically lit moon, mapped with NASA Lunar Reconnaissance Orbiter surface data.
 
-Your city is guessed from the browser timezone, so nothing is requested on load. Pick "Use my location" for your exact latitude, or choose a city from the list.
+<p>
+<a href="https://blode.co/moon">
+<img alt="View demo" src=".github/assets/demo.svg" width="200" />
+</a>
+</p>
 
-## Tech Stack
+## What you can do
 
-- [Next.js](https://nextjs.org/) — App Router, React Compiler, Cache Components
-- [React](https://react.dev/) — UI framework
-- [Tailwind CSS](https://tailwindcss.com/) + [Blode UI](https://blode.co/ui) — styling and components
-- [Glide](https://github.com/mblode/glide) — variable typeface
-- [Three.js](https://threejs.org/) + [React Three Fiber](https://docs.pmnd.rs/react-three-fiber) — 3D rendering
-- [@react-three/drei](https://github.com/pmndrs/drei) — orbit controls and helpers
-- [astronomy-engine](https://github.com/cosinekitty/astronomy) — precise lunar and solar position calculations
-- [TypeScript](https://www.typescriptlang.org/) — type safety
-- [Ultracite](https://github.com/haydenbleasel/ultracite) (oxlint + oxfmt) — linting and formatting
+- **Read the phase:** phase name, lit fraction, and distance in kilometres for the moment you are looking at.
+- **Find it in the sky:** a compass bearing and altitude, or a note that it is below the horizon.
+- **Travel in time:** scrub forwards and back a whole day per step, and watch the terminator sweep across real craters.
+- **Set where you are viewing from:** a city list, or "Use my location" for your exact latitude.
 
-## Textures
+## How it is built
 
-NASA Lunar Reconnaissance Orbiter (LRO) textures live in `public/textures/`, as 2048x1024 WebP:
+- **The phase is computed, never animated:** sun direction, illumination, and orientation come from real Sun and Moon geometry via [astronomy-engine](https://github.com/cosinekitty/astronomy).
+- **The moon is tidally locked, as it is in life:** the sphere holds still and the light moves around it.
+- **The scene frame is zenith-up:** so a crescent from Melbourne leans differently from one in London, which is the point of the page.
+- **The maths is cross-checked:** the lit fraction is verified against `Illumination()` and the bright-limb angle against a closed-form Meeus solution implemented independently.
 
-| File | Source |
-|------|--------|
-| `moon_albedo.webp` | LRO surface albedo |
-| `moon_normal.webp` | Surface normal map |
-| `moon_roughness.webp` | Surface roughness |
+## Notes
 
-Relief comes from the normal map. There is deliberately no displacement map: the
-only LOLA raster to hand was a colour hillshade, which has a fixed sun angle
-already baked into it and is not a height field.
+- Requires WebGL and a browser with JavaScript enabled.
+- Surface relief is a NASA LRO normal map (albedo, normal, and roughness, 2048x1024 WebP).
+- Your city is guessed from the browser timezone, so nothing is requested on load and no geolocation prompt appears until you ask for it.
 
-## Development
+## License
 
-```bash
-npm run dev          # Start dev server on http://localhost:3000/moon
-npm run build        # Type-check and build for production
-npm run start        # Serve the production build locally
-npm run lint         # Check for lint and format issues
-npm run format       # Auto-fix lint and format issues
-npm run check-types  # TypeScript type check only
-npm run verify       # Cross-check the orbital maths
-```
+MIT
 
 ---
 
