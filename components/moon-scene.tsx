@@ -1,6 +1,6 @@
 "use client";
 
-import { OrbitControls, useTexture } from "@react-three/drei";
+import { useTexture } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
 import { Suspense, useLayoutEffect, useRef } from "react";
 import {
@@ -172,18 +172,6 @@ export default function MoonScene({ sol, textures }: Props) {
       <Suspense fallback={<PlainMoon sol={sol} />}>
         <TexturedMoon sol={sol} textures={textures} />
       </Suspense>
-      {/* Zoom is off so the wheel scrolls the page, and the orbit is clamped:
-          free rotation would let you spin the moon out of the orientation the
-          page is claiming is correct. */}
-      <OrbitControls
-        enableDamping={false}
-        enablePan={false}
-        enableZoom={false}
-        maxAzimuthAngle={Math.PI / 7}
-        maxPolarAngle={Math.PI / 2 + 0.4}
-        minAzimuthAngle={-Math.PI / 7}
-        minPolarAngle={Math.PI / 2 - 0.4}
-      />
     </Canvas>
   );
 }

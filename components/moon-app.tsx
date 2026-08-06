@@ -2,7 +2,7 @@
 
 import { ArrowLeftIcon, ArrowRightIcon, GithubIcon } from "blode-icons-react";
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { TimeScrubber } from "@/components/time-scrubber";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,9 @@ const MoonScene = dynamic(() => import("@/components/moon-scene"), {
 });
 
 const DAY_MS = 86_400_000;
+// Matches the ruler's day width, so dragging the sky and dragging the ruler
+// move time at the same rate.
+const DRAG_PX_PER_DAY = 56;
 
 const TEXTURES = {
   color: "/moon/textures/moon_albedo.webp",
@@ -132,6 +135,44 @@ export function MoonApp() {
     [date, place.lat, place.lon]
   );
 
+  // The sky is the scrub surface now that the moon no longer rotates. Only
+  // horizontal movement is claimed, so a vertical drag still scrolls the page
+  // through to the prose.
+  const drag = useRef<{
+    x: number;
+    y: number;
+    days: number;
+    on: boolean;
+  } | null>(null);
+
+  const onStagePointerDown = (e: React.PointerEvent) => {
+    drag.current = { x: e.clientX, y: e.clientY, days: offsetDays, on: false };
+  };
+
+  const onStagePointerMove = (e: React.PointerEvent) => {
+    const d = drag.current;
+    if (!d) {
+      return;
+    }
+    const dx = e.clientX - d.x;
+    const dy = e.clientY - d.y;
+    if (!d.on) {
+      if (Math.abs(dx) < 8 || Math.abs(dx) <= Math.abs(dy)) {
+        return;
+      }
+      d.on = true;
+      e.currentTarget.setPointerCapture(e.pointerId);
+    }
+    setOffsetDays(d.days - Math.round(dx / DRAG_PX_PER_DAY));
+  };
+
+  const onStagePointerUp = (e: React.PointerEvent) => {
+    if (drag.current?.on) {
+      e.currentTarget.releasePointerCapture?.(e.pointerId);
+    }
+    drag.current = null;
+  };
+
   const ready = nowMs !== null;
   const atNow = offsetDays === 0;
   const lit = litLabel(sol.illumFraction, sol.phaseName);
@@ -158,9 +199,15 @@ export function MoonApp() {
 
       <div
         aria-label={`The moon, ${sol.phaseName.toLowerCase()}, ${lit}, seen from ${place.name}`}
-        className={`relative min-h-0 transition-opacity duration-700 md:fixed md:inset-0 ${
-          ready ? "opacity-100" : "opacity-0"
-        }`}
+        className={cn(
+          "relative min-h-0 touch-pan-y select-none transition-opacity duration-700 md:fixed md:inset-0",
+          ready ? "opacity-100" : "opacity-0",
+          drag.current?.on ? "cursor-grabbing" : "cursor-grab"
+        )}
+        onPointerCancel={onStagePointerUp}
+        onPointerDown={onStagePointerDown}
+        onPointerMove={onStagePointerMove}
+        onPointerUp={onStagePointerUp}
         role="img"
       >
         {ready && <MoonScene sol={sol} textures={TEXTURES} />}
@@ -184,7 +231,9 @@ export function MoonApp() {
           <Button
             aria-label="Back to now"
             className={cn(
-              "-translate-y-1/2 absolute top-1/2 right-0 rounded-full",
+              "-translate-y-1/2 absolute top-1/2 rounded-full",
+              // On the side it takes you toward.
+              offsetDays > 0 ? "left-0" : "right-0",
               atNow && "invisible"
             )}
             disabled={atNow}

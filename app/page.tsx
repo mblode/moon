@@ -1,6 +1,7 @@
 import Image from "next/image";
 
 import { MoonApp } from "@/components/moon-app";
+import avatar from "@/public/avatar-sm.png";
 
 const HEADING =
   "mt-8 mb-2 text-balance font-semibold text-[1.3125rem]/[1.3] tracking-[-0.011em]";
@@ -140,7 +141,7 @@ export default function Page() {
           >
             Lunar Reconnaissance Orbiter
           </a>
-          . Drag to look around.
+          . Drag anywhere to move through time.
         </p>
       </main>
 
@@ -153,11 +154,15 @@ export default function Page() {
         >
           {/* alt is empty on purpose: the name is right there in text, so a
               described avatar makes screen readers say it twice. */}
+          {/* Imported rather than referenced by path. A bare "/avatar-sm.png"
+              hands the optimizer an un-prefixed url while basePath puts the file
+              under /moon, so it 400s; a static import emits a basePath-aware
+              asset URL instead. */}
           <Image
             alt=""
             className="rounded-full"
             height={20}
-            src="/avatar-sm.png"
+            src={avatar}
             width={20}
           />
           Matthew Blode

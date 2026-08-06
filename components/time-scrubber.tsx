@@ -35,24 +35,65 @@ export function TimeScrubber({ offsetDays, onOffsetChange, baseMs }: Props) {
   const readyRef = useRef(false);
   const [labelRange, setLabelRange] = useState({ from: -20, to: 20 });
 
-  const scrollToDay = useCallback((days: number, smooth: boolean) => {
+  const anim = useRef(0);
+  const animating = useRef(false);
+  // Set by the keyboard handler: stepping a day should never animate.
+  const instantNext = useRef(false);
+
+  /**
+   * scroll-behavior: smooth gives no control over duration, and a two year
+   * jump under it takes an age. Driving scrollLeft on rAF lets the flight be
+   * capped, and lets the date keep updating on the way, so the moon animates
+   * back through its phases rather than cutting.
+   */
+  const scrollToDay = useCallback((days: number, animate: boolean) => {
     const el = track.current;
     if (!el) {
       return;
     }
-    settingRef.current = true;
-    el.scrollTo({
-      left: (days + RANGE_DAYS) * DAY_PX,
-      behavior: smooth ? "smooth" : "auto",
-    });
-    // "smooth" keeps firing scroll events well past this call.
-    setTimeout(
-      () => {
+    cancelAnimationFrame(anim.current);
+    animating.current = false;
+
+    const to = (days + RANGE_DAYS) * DAY_PX;
+    const from = el.scrollLeft;
+    const distance = Math.abs(to - from);
+    const reduced = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+
+    if (!animate || reduced || distance < 2) {
+      settingRef.current = true;
+      el.scrollLeft = to;
+      requestAnimationFrame(() => {
         settingRef.current = false;
-      },
-      smooth ? 500 : 60
-    );
+      });
+      return;
+    }
+
+    // Grows with distance, but capped so the far end still feels brisk.
+    const duration = Math.min(700, Math.max(280, Math.sqrt(distance) * 10));
+    const started = performance.now();
+    animating.current = true;
+
+    const step = (now: number) => {
+      const t = Math.min(1, (now - started) / duration);
+      // easeOutQuart: leaves quickly, settles softly.
+      el.scrollLeft = from + (to - from) * (1 - (1 - t) ** 4);
+      if (t < 1) {
+        anim.current = requestAnimationFrame(step);
+      } else {
+        animating.current = false;
+      }
+    };
+    anim.current = requestAnimationFrame(step);
   }, []);
+
+  const stopAnimation = useCallback(() => {
+    cancelAnimationFrame(anim.current);
+    animating.current = false;
+  }, []);
+
+  useEffect(() => () => cancelAnimationFrame(anim.current), []);
 
   // Centre on mount. Instant: the resting position is 40,000px in, and
   // animating there would fire scroll events all the way and drag the date
@@ -70,15 +111,18 @@ export function TimeScrubber({ offsetDays, onOffsetChange, baseMs }: Props) {
   // Follow changes that came from outside, i.e. the back-to-now button.
   useEffect(() => {
     const el = track.current;
-    if (!(el && readyRef.current)) {
+    if (!(el && readyRef.current) || animating.current) {
       return;
     }
     const current = Math.round(el.scrollLeft / DAY_PX) - RANGE_DAYS;
     if (current === offsetDays) {
       return;
     }
-    // Gliding is pleasant across a week and absurd across a year.
-    scrollToDay(offsetDays, Math.abs(current - offsetDays) <= 30);
+    // A drag on the stage arrives a day at a time and has to land instantly or
+    // the ruler lags the hand; so does a keypress. Everything else glides.
+    const instant = instantNext.current || Math.abs(current - offsetDays) <= 2;
+    instantNext.current = false;
+    scrollToDay(offsetDays, !instant);
   }, [offsetDays, scrollToDay]);
 
   const onScroll = () => {
@@ -110,6 +154,7 @@ export function TimeScrubber({ offsetDays, onOffsetChange, baseMs }: Props) {
     if (!el || e.pointerType === "touch") {
       return;
     }
+    stopAnimation();
     drag.current = { x: e.clientX, left: el.scrollLeft };
     el.setPointerCapture(e.pointerId);
     el.dataset.dragging = "true";
@@ -152,6 +197,7 @@ export function TimeScrubber({ offsetDays, onOffsetChange, baseMs }: Props) {
     const delta = step[e.key];
     if (delta !== undefined) {
       e.preventDefault();
+      instantNext.current = true;
       onOffsetChange(offsetDays + delta);
     }
   };
@@ -170,6 +216,7 @@ export function TimeScrubber({ offsetDays, onOffsetChange, baseMs }: Props) {
         return;
       }
       e.preventDefault();
+      stopAnimation();
       el.scrollLeft += delta;
       clearTimeout(settle);
       settle = window.setTimeout(() => {
@@ -177,11 +224,13 @@ export function TimeScrubber({ offsetDays, onOffsetChange, baseMs }: Props) {
       }, 140);
     };
     el.addEventListener("wheel", onWheel, { passive: false });
+    el.addEventListener("touchstart", stopAnimation, { passive: true });
     return () => {
       el.removeEventListener("wheel", onWheel);
+      el.removeEventListener("touchstart", stopAnimation);
       clearTimeout(settle);
     };
-  }, [scrollToDay]);
+  }, [scrollToDay, stopAnimation]);
 
   const labels = [];
   for (let d = labelRange.from; d <= labelRange.to; d += 1) {
@@ -198,7 +247,7 @@ export function TimeScrubber({ offsetDays, onOffsetChange, baseMs }: Props) {
         <span className="h-3 w-px bg-foreground/40" />
         <span className="mt-1 whitespace-nowrap text-[0.6875rem] text-muted-foreground">
           {date === null || d === 0
-            ? "now"
+            ? "Now"
             : `${weekday.format(date)} ${dayNum.format(date)}`}
         </span>
       </div>
@@ -222,7 +271,7 @@ export function TimeScrubber({ offsetDays, onOffsetChange, baseMs }: Props) {
         aria-valuenow={offsetDays}
         aria-valuetext={
           baseMs === null
-            ? "now"
+            ? "Now"
             : new Intl.DateTimeFormat(undefined, {
                 weekday: "long",
                 day: "numeric",
