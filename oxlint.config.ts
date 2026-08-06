@@ -22,16 +22,31 @@ export default defineConfig({
     "prefer-destructuring": "off",
     "prefer-optional-catch-binding": "off",
     "prefer-query-selector": "off",
-    // The only role= in the app is role="img" on the WebGL canvas wrapper,
-    // which is the standard way to give a canvas an accessible name. There is
-    // no <img> to prefer here.
-    "jsx-a11y/prefer-tag-over-role": "off",
-    // The only dangerouslySetInnerHTML is the JSON-LD block in app/page.tsx,
-    // built from a static object literal with no user input. Injecting a
-    // ld+json script this way is the documented Next.js pattern.
-    "no-danger": "off",
     "react-compiler": "off",
     "sort-keys": "off",
     "unicorn/catch-error-name": "off",
   },
+  // Scoped to the one file that needs each, rather than switching a real rule
+  // off across the whole app.
+  overrides: [
+    {
+      files: ["app/page.tsx"],
+      // The JSON-LD block is built from a static object literal with no user
+      // input, and injecting a ld+json script this way is the documented
+      // Next.js pattern.
+      rules: { "no-danger": "off" },
+    },
+    {
+      files: ["components/moon-app.tsx"],
+      // role="img" on the WebGL canvas wrapper is the standard way to give a
+      // canvas an accessible name. There is no <img> to prefer here.
+      rules: { "jsx-a11y/prefer-tag-over-role": "off" },
+    },
+    {
+      // Vendored from the @blode shadcn registry. The spinner puts
+      // role="status" on an <svg>, where <output> is not a valid substitute.
+      files: ["components/ui/**"],
+      rules: { "jsx-a11y/prefer-tag-over-role": "off" },
+    },
+  ],
 });

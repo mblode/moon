@@ -53,6 +53,13 @@ but a raw string handed to a loader is not: the texture URLs in
 `components/moon-app.tsx` include the `/moon` prefix by hand because
 `TextureLoader` never sees Next's rewriting.
 
+`vercel.json` also pins `"framework": "nextjs"`. That is load-bearing, not
+decoration: the Vercel project was created for the Vite build and its dashboard
+preset is still `Vite`, which would run the build and then look for Vite's
+output. The field overrides the preset from inside the repo. Verify a config
+change with `vercel build`, which produces `.vercel/output` exactly as the real
+deploy would.
+
 `vercel.json` redirects the retired `moon.blode.co` onto `blode.co/moon`. There is
 deliberately no rule for the zone origin itself — blode.co proxies to it, so a
 redirect there would loop.
