@@ -4,7 +4,13 @@ import { ArrowLeftIcon, ArrowRightIcon, GithubIcon } from "blode-icons-react";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { TimeScrubber } from "@/components/time-scrubber";
+import {
+  dayForScroll,
+  scrollForDay,
+  type ScrubberHandle,
+  TimeScrubber,
+  TRACK_STYLE,
+} from "@/components/time-scrubber";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -26,9 +32,8 @@ const MoonScene = dynamic(() => import("@/components/moon-scene"), {
 });
 
 const DAY_MS = 86_400_000;
-// Matches the ruler's day width, so dragging the sky and dragging the ruler
-// move time at the same rate.
-const DRAG_PX_PER_DAY = 56;
+/** How long after the last scroll event the sky is considered to have settled. */
+const SETTLE_MS = 140;
 
 const TEXTURES = {
   color: "/moon/textures/moon_albedo.webp",
@@ -135,38 +140,111 @@ export function MoonApp() {
     [date, place.lat, place.lon]
   );
 
-  // The sky is the scrub surface now that the moon no longer rotates. Only
-  // horizontal movement is claimed, so a vertical drag still scrolls the page
-  // through to the prose.
+  /*
+   * The sky is the scrub surface now that the moon no longer rotates, and it is
+   * a real scroll container on the ruler's own track rather than a hand-written
+   * drag. That is what makes the two the same gesture: the browser supplies the
+   * momentum and the rubber-band at the ends, and we mirror whatever position
+   * it reaches onto the ruler, so the ruler glides under the needle instead of
+   * stepping a day at a time.
+   */
+  const scrubber = useRef<ScrubberHandle>(null);
+  const sky = useRef<HTMLDivElement>(null);
+  const settle = useRef(0);
+  const streaming = useRef(false);
+  // Set while we position the sky ourselves, so the scroll that causes is not
+  // read back as the user scrubbing.
+  const settingSky = useRef(false);
+
+  const alignSky = useCallback((days: number) => {
+    const el = sky.current;
+    if (!el) {
+      return;
+    }
+    settingSky.current = true;
+    el.scrollLeft = scrollForDay(days);
+    requestAnimationFrame(() => {
+      settingSky.current = false;
+    });
+  }, []);
+
+  // Centre on mount, and follow the ruler and the back-to-now button. Skipped
+  // while the sky is the one driving, or we would fight the finger.
+  useEffect(() => {
+    if (!streaming.current) {
+      alignSky(offsetDays);
+    }
+  }, [offsetDays, alignSky]);
+
+  useEffect(() => () => clearTimeout(settle.current), []);
+
+  const onSkyScroll = () => {
+    const el = sky.current;
+    if (!el || settingSky.current) {
+      return;
+    }
+    if (!streaming.current) {
+      streaming.current = true;
+      scrubber.current?.beginDrag();
+    }
+    scrubber.current?.moveTo(el.scrollLeft);
+    const day = dayForScroll(el.scrollLeft);
+    if (day !== offsetDays) {
+      setOffsetDays(day);
+    }
+    // Momentum keeps firing scroll events, so the gesture is over only once
+    // they stop. Then both surfaces settle onto the same whole day.
+    clearTimeout(settle.current);
+    settle.current = window.setTimeout(() => {
+      streaming.current = false;
+      scrubber.current?.endDrag();
+      alignSky(dayForScroll(el.scrollLeft));
+    }, SETTLE_MS);
+  };
+
+  // A mouse cannot drag a scroll container, so it still needs a drag. Touch is
+  // left to the browser, whose momentum beats anything we would write.
   const drag = useRef<{
     x: number;
     y: number;
-    days: number;
+    left: number;
     on: boolean;
   } | null>(null);
 
-  const onStagePointerDown = (e: React.PointerEvent) => {
-    drag.current = { x: e.clientX, y: e.clientY, days: offsetDays, on: false };
+  const onSkyPointerDown = (e: React.PointerEvent) => {
+    const el = sky.current;
+    if (!el || e.pointerType === "touch") {
+      return;
+    }
+    drag.current = {
+      x: e.clientX,
+      y: e.clientY,
+      left: el.scrollLeft,
+      on: false,
+    };
   };
 
-  const onStagePointerMove = (e: React.PointerEvent) => {
+  const onSkyPointerMove = (e: React.PointerEvent) => {
+    const el = sky.current;
     const d = drag.current;
-    if (!d) {
+    if (!(el && d)) {
       return;
     }
     const dx = e.clientX - d.x;
     const dy = e.clientY - d.y;
     if (!d.on) {
+      // Only claim the gesture once it is clearly sideways, so a vertical drag
+      // still scrolls the page through to the prose.
       if (Math.abs(dx) < 8 || Math.abs(dx) <= Math.abs(dy)) {
         return;
       }
       d.on = true;
       e.currentTarget.setPointerCapture(e.pointerId);
     }
-    setOffsetDays(d.days - Math.round(dx / DRAG_PX_PER_DAY));
+    el.scrollLeft = d.left - dx;
   };
 
-  const onStagePointerUp = (e: React.PointerEvent) => {
+  const onSkyPointerUp = (e: React.PointerEvent) => {
     if (drag.current?.on) {
       e.currentTarget.releasePointerCapture?.(e.pointerId);
     }
@@ -203,17 +281,36 @@ export function MoonApp() {
       <div
         aria-label={`The moon, ${sol.phaseName.toLowerCase()}, ${lit}, seen from ${place.name}`}
         className={cn(
-          "relative min-h-0 touch-pan-y select-none transition-opacity duration-700 overlay:fixed overlay:inset-0",
-          ready ? "opacity-100" : "opacity-0",
-          drag.current?.on ? "cursor-grabbing" : "cursor-grab"
+          "relative min-h-0 select-none transition-opacity duration-700 overlay:fixed overlay:inset-0",
+          ready ? "opacity-100" : "opacity-0"
         )}
-        onPointerCancel={onStagePointerUp}
-        onPointerDown={onStagePointerDown}
-        onPointerMove={onStagePointerMove}
-        onPointerUp={onStagePointerUp}
         role="img"
       >
-        {ready && <MoonScene sol={sol} textures={TEXTURES} />}
+        {/* Absolute so the canvas contributes no intrinsic height. three bakes
+            a pixel height onto the <canvas>, and a 1fr row falls back to its
+            content's max-content whenever the grid's own height is indefinite,
+            so an in-flow canvas pins the row at whatever height it was last
+            given and never shrinks again after a rotation. */}
+        <div className="absolute inset-0">
+          {ready && <MoonScene sol={sol} textures={TEXTURES} />}
+        </div>
+
+        {/* Sits over the canvas, which has nothing to click. touch-pan-x with
+            touch-pan-y lets the browser axis-lock, so a sideways swipe scrubs
+            and a vertical one still scrolls the page through to the prose.
+            The ruler carries the accessible control, so this is hidden. */}
+        <div
+          aria-hidden="true"
+          className="no-scrollbar absolute inset-0 cursor-grab touch-pan-x touch-pan-y overflow-x-auto overflow-y-hidden overscroll-x-contain active:cursor-grabbing"
+          onPointerCancel={onSkyPointerUp}
+          onPointerDown={onSkyPointerDown}
+          onPointerMove={onSkyPointerMove}
+          onPointerUp={onSkyPointerUp}
+          onScroll={onSkyScroll}
+          ref={sky}
+        >
+          <div className="h-full" style={TRACK_STYLE} />
+        </div>
       </div>
 
       <div className="scrim-bottom z-2 grid grid-cols-1 justify-items-center gap-3 px-gutter pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] text-center overlay:fixed overlay:inset-x-0 overlay:bottom-0 overlay:pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
@@ -257,8 +354,9 @@ export function MoonApp() {
         <output className="sr-only">{sol.phaseName}</output>
 
         <TimeScrubber
-          key="scrubber"
           baseMs={nowMs}
+          handleRef={scrubber}
+          key="scrubber"
           offsetDays={offsetDays}
           onOffsetChange={setOffsetDays}
         />
