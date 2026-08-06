@@ -22,6 +22,10 @@ export default defineConfig({
     "prefer-destructuring": "off",
     "prefer-optional-catch-binding": "off",
     "prefer-query-selector": "off",
+    // The only role= in the app is role="img" on the WebGL canvas wrapper,
+    // which is the standard way to give a canvas an accessible name. There is
+    // no <img> to prefer here.
+    "jsx-a11y/prefer-tag-over-role": "off",
     "react-compiler": "off",
     "sort-keys": "off",
     "unicorn/catch-error-name": "off",

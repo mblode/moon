@@ -1,252 +1,187 @@
-import { OrbitControls } from "@react-three/drei";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Suspense, useEffect, useMemo, useRef } from "react";
+import { OrbitControls, useTexture } from "@react-three/drei";
+import { Canvas, useThree } from "@react-three/fiber";
+import { Suspense, useLayoutEffect, useRef } from "react";
 import {
-  BasicShadowMap,
-  ClampToEdgeWrapping,
   type DirectionalLight,
-  FrontSide,
-  type Group,
-  LinearFilter,
-  LinearMipmapLinearFilter,
+  Matrix4,
   type Mesh,
-  RepeatWrapping,
-  RGBAFormat,
-  type Texture,
-  TextureLoader,
+  SRGBColorSpace,
   Vector2,
+  Vector3,
 } from "three";
 
-import { type Inputs, solveMoon } from "../lib/astro";
+import type { MoonSolution } from "../lib/astro";
 
-interface Props {
-  inputs: Inputs;
-  // optional speed multiplier for auto-scrub playback (days per second)
-  speed?: number;
-  textures: {
-    color: string;
-    normal: string;
-    roughness: string;
-    displacement: string;
-  };
+export interface MoonTextures {
+  color: string;
+  normal: string;
+  roughness: string;
 }
 
-function MoonMesh(props: Props) {
-  const { inputs, textures, speed = 0 } = props;
-  const { gl } = useThree(); // Get renderer for anisotropy settings
-  const group = useRef<Group>(null);
+interface Props {
+  sol: MoonSolution;
+  textures: MoonTextures;
+}
+
+/**
+ * Lunar body frame -> sphere geometry frame.
+ *
+ * three's SphereGeometry puts u=0 at -X and increases u as a positive rotation
+ * about +Y, and its uv.y=1 (the image's top row, with the default flipY) sits at
+ * +Y. So for a north-up equirectangular map, lunar north lands on +Y and
+ * selenographic longitude runs eastward with u.
+ *
+ * Which longitude sits at u=0 depends on the map product. This one is centred on
+ * 0 degrees, i.e. lon 0 is at u=0.5 -> geometry +X. Calibrated from the image
+ * rather than by eye: Mare Crisium (17N, 59E) is the isolated dark patch at
+ * u=0.667, which puts lon 0 at u=0.503. Cross-checks: the far side brightness
+ * peak falls at u=0.99 (180 degrees) and the western mare boundary at u=0.29
+ * (Oceanus Procellarum, about 77W).
+ *
+ * Columns are the geometry axes expressed in body coordinates.
+ */
+const TEXTURE_FIX = new Matrix4().makeBasis(
+  new Vector3(1, 0, 0),
+  new Vector3(0, 0, 1),
+  new Vector3(0, -1, 0)
+);
+
+/** Radiance is albedo/PI * intensity * N.L, so PI puts the sub-solar point at
+    exactly the albedo map's value. */
+const SUN_INTENSITY = Math.PI;
+const LIGHT_DISTANCE = 100;
+
+function Lighting({ sol }: { sol: MoonSolution }) {
   const light = useRef<DirectionalLight>(null);
-  const moon = useRef<Mesh>(null);
+  const { invalidate } = useThree();
 
-  const colorMap = useMemo(
-    () => new TextureLoader().load(textures.color),
-    [textures.color]
-  );
-  const normalMap = useMemo(
-    () => new TextureLoader().load(textures.normal),
-    [textures.normal]
-  );
-  const roughnessMap = useMemo(
-    () => new TextureLoader().load(textures.roughness),
-    [textures.roughness]
-  );
-  const displacementMap = useMemo(
-    () => new TextureLoader().load(textures.displacement),
-    [textures.displacement]
-  );
-
-  // Configure NASA LRO textures for optimal lunar surface rendering
-  useMemo(() => {
-    const configureLunarTexture = (texture: Texture, isNormalMap = false) => {
-      // NASA LRO textures are in equirectangular projection
-      texture.wrapS = RepeatWrapping;
-      texture.wrapT = ClampToEdgeWrapping;
-
-      // Proper texture orientation for lunar coordinate system
-      texture.flipY = true;
-      texture.offset.set(0.47, 0); // Offset X to show more textured lunar terrain
-      texture.repeat.set(1, 1);
-
-      // High-quality filtering for detailed lunar surface
-      texture.anisotropy = Math.min(16, gl.capabilities.getMaxAnisotropy());
-      texture.magFilter = LinearFilter;
-      texture.minFilter = LinearMipmapLinearFilter;
-
-      // Generate mipmaps for better performance
-      texture.generateMipmaps = true;
-
-      // Normal map specific settings
-      if (isNormalMap) {
-        texture.format = RGBAFormat;
-      }
-    };
-
-    configureLunarTexture(colorMap);
-    configureLunarTexture(normalMap, true);
-    configureLunarTexture(roughnessMap);
-    configureLunarTexture(displacementMap);
-  }, [
-    colorMap,
-    normalMap,
-    roughnessMap,
-    displacementMap,
-    gl.capabilities.getMaxAnisotropy,
-  ]);
-
-  // Recompute astronomy solution when inputs change
-  const sol = useMemo(() => solveMoon(inputs), [inputs]);
-
-  const timeRef = useRef(inputs.date.getTime());
-
-  // TIDAL LOCKING: Moon orientation stays COMPLETELY FIXED
-  useEffect(() => {
-    if (!group.current) {
-      return;
-    }
-
-    // FUNDAMENTAL PHYSICS: The Moon is tidally locked to Earth
-    // - Same side always faces Earth (synchronous rotation = orbital period)
-    // - Moon does NOT rotate to create phases - phases come from lighting geometry ONLY
-    // - Moon orientation must stay fixed as dates change
-
-    // Set FIXED orientation once and never change it
-    group.current.rotation.set(0, 1.8, 0);
-
-    // Only texture coordinate correction (flip Y to match lunar coordinate system)
-    group.current.rotateX(Math.PI);
-
-    // NO MORE ROTATIONS - moon stays tidally locked
-    // Phases are created by sun direction changes only
-  }, []); // Empty dependency array - this only runs once
-
-  // PHASE CREATION: Change sun direction to simulate orbital motion
-  useFrame((_state, delta) => {
-    let currentSol = sol;
-
-    // Time progression for animation
-    if (speed) {
-      timeRef.current += delta * speed * 86_400_000; // advance time by speed days per second
-      const animDate = new Date(timeRef.current);
-      currentSol = solveMoon({ ...inputs, date: animDate });
-    }
-
+  useLayoutEffect(() => {
     if (!light.current) {
       return;
     }
-
-    // MOON PHASE PHYSICS: Phases result from changing Sun-Moon-Earth geometry
-    // As the Moon orbits Earth, the Sun appears to move relative to the Moon-Earth system
-    // This creates different illumination patterns (phases) visible from Earth
-    //
-    // KEY INSIGHT: Moon stays tidally locked, sun direction changes with orbital motion
-    // - New Moon: Sun direction from "behind" moon (between Earth-Sun)
-    // - Full Moon: Sun direction from "in front" (Earth between Moon-Sun)
-    // - Quarter phases: Sun direction from the "side"
-
-    const [x, y, z] = currentSol.sunDir;
-    const lightDistance = 100;
-
-    // DEBUG: Log sun direction to verify it's rotating over orbital cycle
-    if (Math.random() < 0.03) {
-      // Log occasionally to avoid spam
-      const angle = (Math.atan2(z, x) * 180) / Math.PI; // Angle in XZ plane
-      console.log("🌙 Moon Phase Debug:", {
-        sunDir: `[${x.toFixed(2)}, ${y.toFixed(2)}, ${z.toFixed(2)}]`,
-        sunAngle: `${angle.toFixed(1)}°`,
-        phase: currentSol.phaseName,
-        illum: `${(currentSol.illumFraction * 100).toFixed(1)}%`,
-        phaseAngle: `${currentSol.phaseAngleDeg.toFixed(1)}°`,
-      });
-    }
-
-    // Position directional light to simulate sun's position relative to Moon-Earth system
-    // The sunDir vector represents where the Sun appears from the Moon's perspective
+    const [x, y, z] = sol.sunDir;
     light.current.position.set(
-      x * lightDistance,
-      y * lightDistance,
-      z * lightDistance
+      x * LIGHT_DISTANCE,
+      y * LIGHT_DISTANCE,
+      z * LIGHT_DISTANCE
     );
-
-    // Ensure light targets moon center for accurate directional illumination
     light.current.target.position.set(0, 0, 0);
     light.current.target.updateMatrixWorld();
-
-    // Update shadow mapping for realistic terminator line
-    light.current.shadow.camera.updateProjectionMatrix();
-  });
+    invalidate();
+  }, [sol, invalidate]);
 
   return (
-    <group ref={group}>
-      <mesh receiveShadow ref={moon}>
-        <sphereGeometry args={[1, 256, 256]} />
-        <meshPhysicalMaterial
-          // NASA LRO Surface Textures
-          clearcoat={0.0} // Anorthositic crust albedo
-          displacementBias={0.0} // Surface normal details
-          displacementMap={displacementMap} // Enhanced normal mapping for better surface detail
-          displacementScale={0.012} // Surface roughness variation
-          // Lunar Surface Material Properties
-          map={colorMap} // Moon surface is very rough/dusty
-          metalness={0.0} // Lunar regolith is non-metallic
-          normalMap={normalMap} // No clear coating
-          // Displacement for surface height variation
-          normalScale={new Vector2(1.2, 1.2)} // LRO LOLA elevation data
-          reflectivity={0.12} // More pronounced height variation
-          roughness={0.9}
-          // Enhanced lunar surface reflectance for better visibility
-          roughnessMap={roughnessMap}
-          side={FrontSide} // Very low - lunar regolith is matte/dusty
-          specularIntensity={0.02}
-          transparent={false}
-        />
-      </mesh>
-
-      {/* LUNAR LIGHTING: Harsh shadows due to no atmosphere */}
-
-      <ambientLight intensity={0.1} />
-
-      {/* Sun light - creates harsh, well-defined shadows like on the Moon */}
-      <directionalLight
-        castShadow={true}
-        intensity={3} // Extreme sun intensity for maximum contrast
-        ref={light}
-        shadow-bias={0} // Ultra high resolution for razor-sharp shadows
-        shadow-camera-bottom={-1.5}
-        shadow-camera-far={200}
-        shadow-camera-left={-1.5}
-        shadow-camera-near={0.01}
-        shadow-camera-right={1.5}
-        shadow-camera-top={1.5}
-        shadow-mapSize-height={8192}
-        shadow-mapSize-width={8192} // No shadow softening - harsh edges
-        shadow-normalBias={0} // No bias - raw, unfiltered shadows
-        shadow-radius={0}
-      />
-    </group>
+    <>
+      {/* Earthshine. Earth's lit fraction seen from the moon is the complement
+          of the moon's phase, so this is brightest at new moon and gone at full,
+          which is exactly when you can and cannot see it. */}
+      <ambientLight intensity={0.025 * (1 - sol.illumFraction)} />
+      <directionalLight intensity={SUN_INTENSITY} ref={light} />
+    </>
   );
 }
 
-export default function MoonScene(props: Props) {
+function useOrientation(sol: MoonSolution) {
+  const mesh = useRef<Mesh>(null);
+  const { invalidate } = useThree();
+
+  useLayoutEffect(() => {
+    if (!mesh.current) {
+      return;
+    }
+    const { x, y, z } = sol.bodyAxes;
+    const sceneFromBody = new Matrix4().makeBasis(
+      new Vector3(...x),
+      new Vector3(...y),
+      new Vector3(...z)
+    );
+    mesh.current.quaternion.setFromRotationMatrix(
+      sceneFromBody.multiply(TEXTURE_FIX)
+    );
+    invalidate();
+  }, [sol, invalidate]);
+
+  return mesh;
+}
+
+/** Shown while the surface maps download. Untextured, but lit from the correct
+    direction, so the phase is readable in the first frame. */
+function PlainMoon({ sol }: { sol: MoonSolution }) {
+  const mesh = useOrientation(sol);
+  return (
+    <mesh ref={mesh}>
+      <sphereGeometry args={[1, 64, 64]} />
+      <meshStandardMaterial color="#8b8b88" metalness={0} roughness={1} />
+    </mesh>
+  );
+}
+
+function TexturedMoon({ sol, textures }: Props) {
+  const mesh = useOrientation(sol);
+  const { gl } = useThree();
+
+  const maps = useTexture(
+    {
+      map: textures.color,
+      normalMap: textures.normal,
+      roughnessMap: textures.roughness,
+    },
+    (loaded) => {
+      const anisotropy = Math.min(16, gl.capabilities.getMaxAnisotropy());
+      for (const texture of Object.values(loaded)) {
+        texture.anisotropy = anisotropy;
+      }
+      // Only the albedo carries colour; normal and roughness are data and must
+      // stay linear (three's default).
+      loaded.map.colorSpace = SRGBColorSpace;
+    }
+  );
+
+  return (
+    <mesh ref={mesh}>
+      {/* 128 segments: silhouette error is 3e-4 of the radius, sub-pixel at any
+          size this renders. Relief comes from the normal map, not geometry. */}
+      <sphereGeometry args={[1, 128, 128]} />
+      <meshStandardMaterial
+        {...maps}
+        metalness={0}
+        normalScale={new Vector2(1, 1)}
+        roughness={0.9}
+      />
+    </mesh>
+  );
+}
+
+export default function MoonScene({ sol, textures }: Props) {
   return (
     <Canvas
-      camera={{ position: [0, 0, 3.0], fov: 35, zoom: 0.5 }}
-      gl={{
-        antialias: true,
-      }}
-      onCreated={({ gl }) => {
-        gl.shadowMap.enabled = true;
-        gl.shadowMap.type = BasicShadowMap; // Raw pixelated shadows - zero filtering
-        gl.shadowMap.autoUpdate = true;
-        // Disable any WebGL shadow filtering
-        gl.shadowMap.needsUpdate = true;
-      }} // Enable shadow rendering
-      shadows
+      // 5.5 units back at 35 degrees leaves the disk clear of the console on a
+      // laptop viewport, with black around it.
+      camera={{ fov: 35, position: [0, 0, 5.5] }}
+      // `flat` disables ACES tone mapping, which crushes the midtones of a
+      // single-light matte surface. Nothing here has any HDR range to map.
+      dpr={[1, 2]}
+      flat
+      // Nothing animates: the light only moves when the solution changes.
+      frameloop="demand"
+      gl={{ alpha: true, antialias: true }}
     >
-      <color args={["#05060a"]} attach="background" />
-      <Suspense fallback={null}>
-        <MoonMesh {...props} />
+      <Lighting sol={sol} />
+      <Suspense fallback={<PlainMoon sol={sol} />}>
+        <TexturedMoon sol={sol} textures={textures} />
       </Suspense>
-      <OrbitControls enablePan={false} enableRotate={true} enableZoom={true} />
+      {/* Zoom is off so the wheel scrolls the page, and the orbit is clamped:
+          free rotation would let you spin the moon out of the orientation the
+          page is claiming is correct. */}
+      <OrbitControls
+        enableDamping={false}
+        enablePan={false}
+        enableZoom={false}
+        maxAzimuthAngle={Math.PI / 7}
+        maxPolarAngle={Math.PI / 2 + 0.4}
+        minAzimuthAngle={-Math.PI / 7}
+        minPolarAngle={Math.PI / 2 - 0.4}
+      />
     </Canvas>
   );
 }

@@ -6,10 +6,10 @@ Real-time 3D lunar visualization with physics-accurate phase rendering, NASA LRO
 
 - **Accurate moon phases:** Calculates phase, illumination fraction, and sun direction using `astronomy-engine` and real orbital mechanics — not a pre-baked animation.
 - **Tidally locked rendering:** The moon stays fixed as the Sun's direction rotates around it, matching how phases actually work.
-- **NASA LRO textures:** Albedo, normal, roughness, and displacement maps sourced from the Lunar Reconnaissance Orbiter for a realistic surface.
-- **Time travel:** Scrub ±30 days in 2-hour increments to watch the lunar cycle play out.
-- **Location-aware:** Requests geolocation and reverse-geocodes via Nominatim to show phase names correctly for the Southern Hemisphere (flipped crescent orientation).
-- **Interactive 3D:** Orbit, zoom, and inspect the surface with `@react-three/drei` orbit controls.
+- **NASA LRO textures:** Albedo, normal, and roughness maps sourced from the Lunar Reconnaissance Orbiter for a realistic surface.
+- **Time travel:** Scrub ±15 days a day at a time to watch the lunar cycle play out.
+- **Location-aware:** The scene frame is built on your zenith, so the crescent leans the right way for your latitude. Melbourne is not London.
+- **Verified, not just vibes:** `npm run verify` cross-checks the maths against `Illumination()` and a closed-form Meeus solution implemented independently.
 
 ## Getting Started
 
@@ -22,7 +22,7 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173).
 
-The app requests browser geolocation on load. Deny or allow — it defaults to Melbourne, Victoria if denied.
+Your city is guessed from the browser timezone, so nothing is requested on load. Pick "Use my location" for your exact latitude, or choose a city from the list.
 
 ## Tech Stack
 
@@ -31,22 +31,22 @@ The app requests browser geolocation on load. Deny or allow — it defaults to M
 - [Three.js](https://threejs.org/) + [React Three Fiber](https://docs.pmnd.rs/react-three-fiber) — 3D rendering
 - [@react-three/drei](https://github.com/pmndrs/drei) — orbit controls and helpers
 - [astronomy-engine](https://github.com/cosinekitty/astronomy) — precise lunar and solar position calculations
-- [Zustand](https://zustand-demo.pmnd.rs/) — global state
 - [TypeScript](https://www.typescriptlang.org/) — type safety
-- [Biome](https://biomejs.dev/) + [Ultracite](https://github.com/haydenbleasel/ultracite) — linting and formatting
+- [Ultracite](https://github.com/haydenbleasel/ultracite) (oxlint + oxfmt) — linting and formatting
 
 ## Textures
 
-NASA Lunar Reconnaissance Orbiter (LRO) textures are required in `public/textures/`:
+NASA Lunar Reconnaissance Orbiter (LRO) textures live in `public/textures/`, as 2048x1024 WebP:
 
 | File | Source |
 |------|--------|
-| `moon_anorthositic_crust_albedo.jpg` | LRO surface albedo |
-| `moon_anorthositic_crust_normal.jpg` | Surface normal map |
-| `moon_anorthositic_crust_roughness.jpg` | Surface roughness |
-| `moon_lro_lola_dem_colorhillshade.jpg` | LOLA elevation / displacement |
+| `moon_albedo.webp` | LRO surface albedo |
+| `moon_normal.webp` | Surface normal map |
+| `moon_roughness.webp` | Surface roughness |
 
-Additional texture variants (gravity anomalies, slope data, mantle cross-sections) are available in `public/textures/` but not used by default.
+Relief comes from the normal map. There is deliberately no displacement map: the
+only LOLA raster to hand was a colour hillshade, which has a fixed sun angle
+already baked into it and is not a height field.
 
 ## Development
 
@@ -55,8 +55,9 @@ npm run dev          # Start dev server on port 5173
 npm run build        # Type-check and build for production
 npm run preview      # Preview the production build locally
 npm run lint         # Check for lint and format issues
-npm run lint:fix     # Auto-fix lint and format issues
+npm run format       # Auto-fix lint and format issues
 npm run check-types  # TypeScript type check only
+npm run verify       # Cross-check the orbital maths
 ```
 
 ---

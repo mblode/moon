@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "prepare": "lefthook install || true",
+    "verify": "node scripts/verify-astro.mjs",
     "lint": "ultracite check",
     "format": "ultracite fix",
     "check-types": "tsc --noEmit"
