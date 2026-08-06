@@ -7,10 +7,10 @@
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
 
-    <title>3D Moon Phase Simulator: Tonight's Phase Where You Are</title>
+    <title>3D Moon Phase Simulator: Tonight’s Phase Where You Are</title>
     <meta
       name="description"
-      content="An interactive 3D moon phase simulator. See tonight's phase, illumination and orientation for your exact latitude and longitude, then scrub fifteen days either way."
+      content="An interactive 3D moon phase simulator. See tonight’s phase, illumination and orientation for your exact latitude and longitude, then scrub fifteen days either way."
     />
     <link rel="canonical" href="https://blode.co/moon" />
     <meta
@@ -32,11 +32,11 @@
     <meta property="og:url" content="https://blode.co/moon" />
     <meta
       property="og:title"
-      content="3D Moon Phase Simulator: Tonight's Phase Where You Are"
+      content="3D Moon Phase Simulator: Tonight’s Phase Where You Are"
     />
     <meta
       property="og:description"
-      content="The moon as it looks right now, from where you are standing. The phase isn't animated, it's computed from real orbital positions."
+      content="The moon as it looks right now, from where you are standing. The phase isn’t animated, it’s computed from real orbital positions."
     />
     <meta
       property="og:image"
@@ -56,11 +56,11 @@
     <meta name="twitter:creator" content="@mattblode" />
     <meta
       name="twitter:title"
-      content="3D Moon Phase Simulator: Tonight's Phase Where You Are"
+      content="3D Moon Phase Simulator: Tonight’s Phase Where You Are"
     />
     <meta
       name="twitter:description"
-      content="The moon as it looks right now, from where you are standing. The phase isn't animated, it's computed from real orbital positions."
+      content="The moon as it looks right now, from where you are standing. The phase isn’t animated, it’s computed from real orbital positions."
     />
     <meta
       name="twitter:image"
@@ -72,6 +72,16 @@
     />
 
     <link rel="stylesheet" href="/src/styles.css" />
+
+    <!-- Text is the LCP element on this page, so the roman is worth preloading.
+         The italic and mono are declared but unused, so they never download. -->
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      href="/fonts/glide-variable.woff2"
+      crossorigin
+    />
 
     <!-- The albedo map is otherwise not requested until the bundle has parsed,
          executed and mounted the canvas. -->
@@ -126,7 +136,7 @@
               "price": "0",
               "priceCurrency": "USD"
             },
-            "description": "An interactive 3D model of the Moon that computes tonight's phase, illumination and orientation for your latitude and longitude, with a thirty day time-travel slider.",
+            "description": "An interactive 3D model of the Moon that computes tonight’s phase, illumination and orientation for your latitude and longitude, with a thirty day time-travel slider.",
             "featureList": [
               "Real-time lunar phase from your latitude and longitude",
               "Hemisphere-correct crescent orientation",
@@ -166,7 +176,7 @@
       is real content either way, and without it the page has no h1 at all.
     -->
     <h1 class="sr-only">
-      3D moon phase simulator: tonight's phase from where you are
+      3D moon phase simulator: tonight’s phase from where you are
     </h1>
 
     <div id="root"></div>
@@ -193,14 +203,14 @@
 
       <h2>Why the moon looks upside down in the southern hemisphere</h2>
       <p>
-        Southern observers look at the moon from the other side of the earth's
+        Southern observers look at the moon from the other side of the earth’s
         axis, so the lit edge appears rotated by roughly half a turn. A crescent
         that opens to the right in London opens to the left in Melbourne. That
         rotation is computed here from your own position, which is why picking a
         different city visibly tips the moon over.
       </p>
 
-      <h2>The moon doesn't rotate to make a phase</h2>
+      <h2>The moon doesn’t rotate to make a phase</h2>
       <p>
         It is tidally locked, keeping one face toward earth. Nothing here spins
         to produce a phase; only the light moves, which is how phases actually
@@ -210,7 +220,7 @@
 
       <h2>Where the surface comes from</h2>
       <p>
-        Colour, relief and roughness maps from NASA's
+        Colour, relief and roughness maps from NASA’s
         <a href="https://lunar.gsfc.nasa.gov/">Lunar Reconnaissance Orbiter</a>.
         Drag to look around.
       </p>
