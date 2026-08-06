@@ -26,6 +26,10 @@ export default defineConfig({
     // which is the standard way to give a canvas an accessible name. There is
     // no <img> to prefer here.
     "jsx-a11y/prefer-tag-over-role": "off",
+    // The only dangerouslySetInnerHTML is the JSON-LD block in app/page.tsx,
+    // built from a static object literal with no user input. Injecting a
+    // ld+json script this way is the documented Next.js pattern.
+    "no-danger": "off",
     "react-compiler": "off",
     "sort-keys": "off",
     "unicorn/catch-error-name": "off",

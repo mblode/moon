@@ -4,47 +4,24 @@
     {
       "source": "/",
       "destination": "https://blode.co/moon",
-      "has": [{ "type": "host", "value": "moon.blode.co" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "moon.blode.co"
+        }
+      ],
       "permanent": true
     },
     {
       "source": "/:path*",
       "destination": "https://blode.co/moon/:path*",
-      "has": [{ "type": "host", "value": "moon.blode.co" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "moon.blode.co"
+        }
+      ],
       "permanent": true
-    }
-  ],
-  "headers": [
-    {
-      "source": "/moon/assets/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    },
-    {
-      "source": "/moon/fonts/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    },
-    {
-      "source": "/moon/textures/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    },
-    {
-      "source": "/moon/(opengraph-image.jpg|avatar-sm.png)",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }]
     }
   ]
 }

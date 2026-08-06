@@ -1,17 +1,33 @@
+"use client";
+
 import { MakeTime, SearchMoonPhase } from "astronomy-engine";
+import { GithubIcon } from "blode-icons-react";
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import MoonScene from "./components/moon-scene";
-import { solveMoon } from "./lib/astro";
-import { guessPlace, locate, PLACES, type Place } from "./lib/location";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { solveMoon } from "@/lib/astro";
+import { guessPlace, locate, PLACES, type Place } from "@/lib/location";
+
+// WebGL has nothing to render on the server, and r3f has no SSR path.
+const MoonScene = dynamic(() => import("@/components/moon-scene"), {
+  ssr: false,
+});
 
 const HOUR_MS = 3_600_000;
 const SCRUB_HOURS = 360; // 15 days either way; a synodic month is 29.5
 
 const TEXTURES = {
-  color: `${import.meta.env.BASE_URL}textures/moon_albedo.webp`,
-  normal: `${import.meta.env.BASE_URL}textures/moon_normal.webp`,
-  roughness: `${import.meta.env.BASE_URL}textures/moon_roughness.webp`,
+  color: "/moon/textures/moon_albedo.webp",
+  normal: "/moon/textures/moon_normal.webp",
+  roughness: "/moon/textures/moon_roughness.webp",
 };
 
 // Formatted in the timezone of the place you are viewing from, so the clock is
@@ -69,21 +85,27 @@ function relativeLabel(hours: number): string {
   return `${parts.join(" ")} ${hours < 0 ? "ago" : "from now"}`;
 }
 
-export default function App() {
-  const [origin, setOrigin] = useState(guessPlace);
-  const { place, exact } = origin;
+export function MoonApp() {
+  // Cache Components makes Date.now() during render a hard build error, and a
+  // timezone read on the server would not match the client anyway. Both resolve
+  // after hydration; Melbourne is the deterministic default until then.
+  const [nowMs, setNowMs] = useState<number | null>(null);
+  const [origin, setOrigin] = useState<{ place: Place; exact: boolean }>({
+    place: PLACES[0],
+    exact: false,
+  });
+  const { place } = origin;
   const [offsetHours, setOffsetHours] = useState(0);
-  const [ready, setReady] = useState(false);
-  const [nowMs, setNowMs] = useState(() => Date.now());
 
-  // "Now" has to keep moving, or the page silently drifts from the sky.
   useEffect(() => {
+    setOrigin(guessPlace());
+    // "Now" has to keep moving, or the page silently drifts from the sky.
     let timer: number;
     const tick = () => {
       setNowMs(Date.now());
       timer = window.setTimeout(tick, 60_000 - (Date.now() % 60_000));
     };
-    timer = window.setTimeout(tick, 60_000 - (Date.now() % 60_000));
+    tick();
     return () => clearTimeout(timer);
   }, []);
 
@@ -115,7 +137,7 @@ export default function App() {
   }, [requestLocation]);
 
   const date = useMemo(
-    () => new Date(nowMs + offsetHours * HOUR_MS),
+    () => new Date((nowMs ?? 0) + offsetHours * HOUR_MS),
     [nowMs, offsetHours]
   );
 
@@ -127,13 +149,16 @@ export default function App() {
   // Two searches a minute, not one per drag frame. Searching from 15 days back
   // keeps the hit inside the slider's range.
   const events = useMemo(() => {
+    if (nowMs === null) {
+      return { full: undefined, next: undefined };
+    }
     const from = MakeTime(new Date(nowMs - SCRUB_HOURS * HOUR_MS));
     const at = (lon: number) => SearchMoonPhase(lon, from, 40)?.date;
     return { full: at(180), next: at(0) };
   }, [nowMs]);
 
   const jumpTo = (target?: Date) => {
-    if (target) {
+    if (target && nowMs !== null) {
       setOffsetHours(
         Math.max(
           -SCRUB_HOURS,
@@ -146,8 +171,7 @@ export default function App() {
     }
   };
 
-  useEffect(() => setReady(true), []);
-
+  const ready = nowMs !== null;
   const lit = litLabel(sol.illumFraction, sol.phaseName);
   const dateTime = dateTimeIn(place.tz);
   // Answers "can I see it, and where do I look" without a bare number to decode.
@@ -157,39 +181,37 @@ export default function App() {
       : `${compassOf(sol.azimuthDeg)}, ${Math.round(sol.altitudeDeg)}° up`;
 
   return (
-    <div className="page">
-      <header className="bar">
+    <div className="grid min-h-dvh grid-rows-[48px_1fr_auto] md:block">
+      <header className="scrim-top z-2 flex items-center justify-end px-4 md:fixed md:inset-x-0 md:top-0">
         <a
-          className="ghlink"
+          className="inline-flex items-center rounded-full p-2 text-muted-foreground transition-colors hover:text-foreground"
           href="https://github.com/mblode/moon"
           rel="noreferrer"
           target="_blank"
         >
-          <svg aria-hidden="true" height="18" viewBox="0 0 16 16" width="18">
-            <path
-              d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"
-              fill="currentColor"
-            />
-          </svg>
+          <GithubIcon aria-hidden="true" className="size-[18px]" />
           <span className="sr-only">Source on GitHub</span>
         </a>
       </header>
 
       <div
         aria-label={`The moon, ${sol.phaseName.toLowerCase()}, ${lit}, seen from ${place.name}`}
-        className="stage"
-        data-ready={ready || undefined}
+        className={`relative min-h-0 transition-opacity duration-700 md:fixed md:inset-0 ${
+          ready ? "opacity-100" : "opacity-0"
+        }`}
         role="img"
       >
-        <MoonScene sol={sol} textures={TEXTURES} />
+        {ready && <MoonScene sol={sol} textures={TEXTURES} />}
       </div>
 
-      <div className="console">
-        <p className="readout readout--lead">
-          {sol.phaseName} <span className="dot">·</span> {lit}
+      <div className="scrim-bottom z-2 grid justify-items-center gap-3 px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] text-center md:fixed md:inset-x-0 md:bottom-0 md:pb-6">
+        <p className="m-0 text-[1.375rem] tabular-nums tracking-[-0.011em]">
+          {sol.phaseName} <span className="px-[0.15em] opacity-40">·</span>{" "}
+          {lit}
         </p>
-        <p className="readout">
-          {dateTime.format(date)} <span className="dot">·</span>{" "}
+        <p className="m-0 text-muted-foreground text-sm tabular-nums">
+          {ready ? dateTime.format(date) : " "}{" "}
+          <span className="px-[0.15em] opacity-40">·</span>{" "}
           {number.format(sol.distanceKm)} km away
         </p>
         {/* Only the phase name is announced. React mutates this text node just
@@ -197,94 +219,104 @@ export default function App() {
             numbers in here would queue an announcement per drag event. */}
         <output className="sr-only">{sol.phaseName}</output>
 
-        <div className="scrub">
+        <div className="w-full max-w-[640px]">
           <label className="sr-only" htmlFor="time">
             Time
           </label>
           <input
-            aria-valuetext={`${dateTime.format(date)}, ${relativeLabel(offsetHours)}`}
+            aria-valuetext={`${ready ? dateTime.format(date) : ""}, ${relativeLabel(offsetHours)}`}
             // Or a reload restores the previous thumb position and silently
             // drops you off "now".
             autoComplete="off"
-            className="scrub__range"
+            className="scrub-range"
             id="time"
             max={SCRUB_HOURS}
             min={-SCRUB_HOURS}
             onChange={(e) => setOffsetHours(Number(e.target.value))}
             // Whole days. The scene frame is zenith-up, so the disk rolls once
-            // per day as the earth turns — real, but scrubbing by hours walks
-            // straight through it and the moon tumbles (up to 54 degrees per
-            // hourly step near transit, ~30 full turns end to end). Holding the
-            // time of day constant leaves only the slow drift, about 45 degrees
-            // across the whole range, and the phase becomes the visible change.
-            // The chips still set exact event times; a controlled value is free
-            // to sit off-step.
+            // per day as the earth turns; scrubbing by hours walks straight
+            // through it and the moon tumbles (up to 54 degrees per hourly step
+            // near transit, ~30 full turns end to end). Holding the time of day
+            // constant leaves only the slow drift, about 45 degrees across the
+            // whole range. The chips still set exact event times; a controlled
+            // value is free to sit off-step.
             step={24}
             type="range"
             value={offsetHours}
           />
-          <div aria-hidden="true" className="scrub__ticks">
+          <div
+            aria-hidden="true"
+            className="-mt-2 flex justify-between text-[0.6875rem] text-muted-foreground"
+          >
             <span>−15 days</span>
             <span>now</span>
             <span>+15 days</span>
           </div>
         </div>
 
-        <div className="chips">
-          <button
+        <div className="flex flex-wrap justify-center gap-2">
+          <Button
             disabled={offsetHours === 0}
             onClick={() => setOffsetHours(0)}
-            type="button"
+            size="sm"
+            variant="outline"
           >
             Now
-          </button>
+          </Button>
           {events.full && (
-            <button onClick={() => jumpTo(events.full)} type="button">
+            <Button
+              onClick={() => jumpTo(events.full)}
+              size="sm"
+              variant="outline"
+            >
               Full moon {shortDate.format(events.full)}
-            </button>
+            </Button>
           )}
           {events.next && (
-            <button onClick={() => jumpTo(events.next)} type="button">
+            <Button
+              onClick={() => jumpTo(events.next)}
+              size="sm"
+              variant="outline"
+            >
               New moon {shortDate.format(events.next)}
-            </button>
+            </Button>
           )}
         </div>
 
-        <p className="where">
-          <label className="where__label" htmlFor="place">
-            View from
-          </label>
-          <select
-            id="place"
-            onChange={(e) => {
-              if (e.target.value === "__locate") {
+        <div className="flex flex-wrap items-center justify-center gap-2 text-muted-foreground text-sm">
+          <span id="place-label">View from</span>
+          <Select
+            onValueChange={(value: string) => {
+              if (value === "__locate") {
                 requestLocation();
                 return;
               }
-              const found = PLACES.find(
-                (p: Place) => p.name === e.target.value
-              );
+              const found = PLACES.find((p: Place) => p.name === value);
               if (found) {
                 setOrigin({ place: found, exact: true });
               }
             }}
             value={PLACES.some((p) => p.name === place.name) ? place.name : ""}
           >
-            {!exact && <option value="">{place.name} (approx)</option>}
-            {place.name === "Your location" && (
-              <option value="">Your location</option>
-            )}
-            <option value="__locate">Use my location</option>
-            {PLACES.map((p) => (
-              <option key={p.name} value={p.name}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-          <span className="where__detail">
-            <span className="dot">·</span> {whereToLook}
-          </span>
-        </p>
+            {/* The trigger is w-full from the registry and Base UI keeps it,
+                so the width is set here instead. */}
+            <span className="inline-block w-40 align-middle">
+              <SelectTrigger aria-labelledby="place-label" size="sm">
+                <SelectValue placeholder={place.name} />
+              </SelectTrigger>
+            </span>
+            <SelectContent>
+              <SelectItem value="__locate">Use my location</SelectItem>
+              {PLACES.map((p) => (
+                <SelectItem key={p.name} value={p.name}>
+                  {p.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <span className="px-[0.15em] opacity-40">·</span>
+          <span className="tabular-nums">{whereToLook}</span>
+        </div>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 /**
- * Cross-checks src/lib/astro.ts against independently-derived astronomy.
+ * Cross-checks lib/astro.ts against independently-derived astronomy.
  *
  * Run with `npm run verify`. Node strips the TypeScript natively, so this
  * imports the real production module rather than a copy of it. Every check
@@ -18,7 +18,7 @@ import {
   Equator,
 } from "astronomy-engine";
 
-import { geocentricSubEarth, solveMoon } from "../src/lib/astro.ts";
+import { geocentricSubEarth, solveMoon } from "../lib/astro.ts";
 
 const DEG = Math.PI / 180;
 const HOURS = Math.PI / 12;

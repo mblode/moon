@@ -1,3 +1,5 @@
+"use client";
+
 import { OrbitControls, useTexture } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
 import { Suspense, useLayoutEffect, useRef } from "react";
@@ -10,7 +12,7 @@ import {
   Vector3,
 } from "three";
 
-import type { MoonSolution } from "../lib/astro";
+import type { MoonSolution } from "@/lib/astro";
 
 export interface MoonTextures {
   color: string;

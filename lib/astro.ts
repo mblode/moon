@@ -121,8 +121,10 @@ function nameOf(elongationDeg: number): string {
 }
 
 export function solveMoon(i: Inputs): MoonSolution {
-  const date = i.date && !Number.isNaN(i.date.getTime()) ? i.date : new Date();
-  const time = MakeTime(date);
+  // No `new Date()` fallback here: solveMoon runs inside a useMemo during
+  // render, and Cache Components makes a clock read there a hard build error.
+  // Callers own the date.
+  const time = MakeTime(i.date);
   const obs = new Observer(i.lat, i.lon, i.elev ?? 0);
 
   // Both bodies in the same frame — topocentric, of date, aberration corrected.

@@ -1,48 +1,57 @@
 # AGENTS.md — moon
 
-Real-time 3D lunar visualisation at <https://blode.co/moon>. Vite + React 19,
-Three.js via `@react-three/fiber` and `drei`, orbital maths from
-`astronomy-engine`. Five source files; there is no backend and no test runner,
-but `npm run verify` cross-checks the orbital maths against independent astronomy.
+Real-time 3D lunar visualisation at <https://blode.co/moon>. Next.js 16 App
+Router, React 19, Tailwind v4 with Blode UI, Three.js via `@react-three/fiber`
+and `drei`, orbital maths from `astronomy-engine`. No backend and no test
+runner, but `npm run verify` cross-checks the orbital maths against independent
+astronomy.
 
 ## Commands
 
 ```bash
-npm run dev           # vite, localhost:5173
-npm run build         # tsc -b && vite build  -> dist/moon
-npm run preview       # serve the built output
+npm run dev           # next dev, localhost:3000/moon
+npm run build         # next build (runs tsc)
+npm run start         # serve the production build
 npm run lint          # ultracite check  (oxlint + oxfmt, not Biome)
 npm run format        # ultracite fix
 npm run check-types   # tsc --noEmit
 npm run verify        # cross-check solveMoon against closed-form astronomy
 ```
 
-`build` typechecks before bundling (`tsc -b`), so a type error fails the build
-here — unlike the Next projects in this account, which skip it.
+`next build` runs the project-local `tsc` CLI, so a type error fails the build.
+Diagnostics are raw `tsc` output with no Next code frames.
 
 ## Layout
 
 ```
-index.html                  Vite entry. Also holds the sr-only <h1> and analytics.
-src/main.tsx                mounts <App /> into #root
-src/app.tsx                 UI, controls, readouts
-src/components/moon-scene.tsx  the r3f scene: mesh, lighting, orbit controls
-src/lib/astro.ts            all orbital maths -> MoonSolution
-src/lib/location.ts         where the viewer is, and the city picker
-src/styles.css              the only stylesheet, linked from index.html
+app/layout.tsx              Glide via next/font/local, all metadata, Agentation
+app/page.tsx                server component: h1, prose, footer, JSON-LD
+app/globals.css             Tailwind v4 theme + the few non-utility rules
+app/fonts/                  Glide woff2, referenced by next/font/local
+components/moon-app.tsx     "use client": state, console, readouts
+components/moon-scene.tsx   "use client": the r3f scene
+components/ui/              Blode UI (shadcn registry) button, select, spinner
+lib/astro.ts                all orbital maths -> MoonSolution
+lib/location.ts             where the viewer is, and the city picker
 scripts/verify-astro.mjs    the checks behind `npm run verify`
 public/textures/            NASA LRO albedo, normal, roughness (WebP)
 ```
 
-`index.html` also holds the sr-only `<h1>`, the prose, the footer and the
-JSON-LD. It is the only markup crawlers see, so user-facing copy belongs there
-rather than in a component.
+There is no `src/`, per the scaffold convention; `@/*` resolves from the repo
+root. The prose lives in `app/page.tsx` as a server component, so unlike the
+old Vite build it is server-rendered rather than hand-written into a static
+`index.html`.
 
 ## It ships as a blode.co zone
 
-`vite.config.ts` sets `base: "/moon/"` and `build.outDir: "dist/moon"`; blode.co
-proxies `/moon` to this deployment. Change either and every asset 404s under the
-real URL while `npm run dev` keeps working, so it will not show up locally.
+`next.config.ts` sets `basePath: "/moon"`; blode.co proxies `/moon` to this
+deployment. Change it and every asset 404s under the real URL. Note this means
+the dev server serves the app at `localhost:3000/moon`, not at `/`.
+
+Asset paths in **JSX** are basePath-rewritten by `next/image` and `next/font`,
+but a raw string handed to a loader is not: the texture URLs in
+`components/moon-app.tsx` include the `/moon` prefix by hand because
+`TextureLoader` never sees Next's rewriting.
 
 `vercel.json` redirects the retired `moon.blode.co` onto `blode.co/moon`. There is
 deliberately no rule for the zone origin itself — blode.co proxies to it, so a
@@ -93,3 +102,10 @@ redirect there would loop.
 - **Testing in a background tab shows a black canvas.** Chrome suspends
   `requestAnimationFrame` in hidden tabs, so WebGL never draws while the DOM keeps
   updating. Foreground the window before concluding the scene is broken.
+- **Cache Components bans clock reads during render.** `Date.now()`, `new Date()`
+  and `Math.random()` are hard build errors in server *and* client components,
+  which is why `MoonApp` starts with `nowMs = null` and fills it in an effect,
+  and why `solveMoon` has no `new Date()` fallback. The timezone guess is
+  deferred the same way, since a server-side read would not match the client.
+- **The scene is `dynamic(..., { ssr: false })`.** r3f has no SSR path and WebGL
+  has nothing to draw on the server.
