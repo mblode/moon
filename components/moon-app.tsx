@@ -9,7 +9,10 @@ import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -189,7 +192,7 @@ export function MoonApp() {
           rel="noreferrer"
           target="_blank"
         >
-          <GithubIcon aria-hidden="true" className="size-[18px]" />
+          <GithubIcon aria-hidden="true" className="size-5" />
           <span className="sr-only">Source on GitHub</span>
         </a>
       </header>
@@ -298,20 +301,26 @@ export function MoonApp() {
             }}
             value={PLACES.some((p) => p.name === place.name) ? place.name : ""}
           >
-            {/* The trigger is w-full from the registry and Base UI keeps it,
-                so the width is set here instead. */}
-            <span className="inline-block w-40 align-middle">
-              <SelectTrigger aria-labelledby="place-label" size="sm">
-                <SelectValue placeholder={place.name} />
-              </SelectTrigger>
-            </span>
+            <SelectTrigger
+              aria-labelledby="place-label"
+              className="w-40"
+              size="sm"
+            >
+              <SelectValue placeholder={place.name} />
+            </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__locate">Use my location</SelectItem>
-              {PLACES.map((p) => (
-                <SelectItem key={p.name} value={p.name}>
-                  {p.name}
-                </SelectItem>
-              ))}
+              <SelectGroup>
+                <SelectItem value="__locate">Use my location</SelectItem>
+              </SelectGroup>
+              <SelectSeparator />
+              <SelectGroup>
+                <SelectLabel>Cities</SelectLabel>
+                {PLACES.map((p) => (
+                  <SelectItem key={p.name} value={p.name}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
             </SelectContent>
           </Select>
           <span className="px-[0.15em] opacity-40">·</span>
