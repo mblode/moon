@@ -18,7 +18,7 @@ A physically lit moon, mapped with NASA Lunar Reconnaissance Orbiter surface dat
 
 <p>
 <a href="https://blode.co/moon">
-<img alt="View demo" src=".github/assets/demo.svg" width="200" />
+<img alt="Open the app" src=".github/assets/demo.svg" width="200" />
 </a>
 </p>
 
