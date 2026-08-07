@@ -8,6 +8,10 @@ Pick your city, read the phase and illumination, and watch the crescent lean the
 
 </div>
 
+<p align="center">
+  <img alt="Tonight's waning crescent rendered in 3D, with the phase, distance and time scrubber below" src=".github/assets/screenshot.jpg" width="800" />
+</p>
+
 ## Demo
 
 A physically lit moon, mapped with NASA Lunar Reconnaissance Orbiter surface data.
