@@ -170,7 +170,7 @@ export default function Page() {
         {/* The edge back to the hub. Same origin behind a rewrite, so same tab
             and no rel: this zone was otherwise a dead end. See
             blode-co/apps/web/.claude/knowledge/zone-conventions.md. */}
-        <span aria-hidden="true">&middot;</span>
+        <span aria-hidden="true">·</span>
         <a
           className="rounded-full px-2 py-1 transition-colors hover:text-foreground"
           href="https://blode.co/projects"
