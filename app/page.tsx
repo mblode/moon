@@ -11,7 +11,7 @@ const JSON_LD = {
   "@graph": [
     {
       "@type": "BreadcrumbList",
-      "@id": "https://blode.co/moon#breadcrumb",
+      "@id": "https://blode.co/moon/#breadcrumb",
       itemListElement: [
         {
           "@type": "ListItem",
@@ -35,7 +35,7 @@ const JSON_LD = {
     },
     {
       "@type": "WebApplication",
-      "@id": "https://blode.co/moon#app",
+      "@id": "https://blode.co/moon/#app",
       name: "3D Moon Phase Simulator",
       url: "https://blode.co/moon",
       applicationCategory: "EducationalApplication",
@@ -57,7 +57,7 @@ const JSON_LD = {
       screenshot: "https://blode.co/moon/opengraph-image.jpg",
       author: { "@id": "https://blode.co/#person" },
       creator: { "@id": "https://blode.co/#person" },
-      publisher: { "@id": "https://blode.co/#person" },
+      publisher: { "@id": "https://blode.co/#organization" },
       isPartOf: { "@id": "https://blode.co/#website" },
       citation: [
         {
@@ -166,6 +166,16 @@ export default function Page() {
             width={20}
           />
           Matthew Blode
+        </a>
+        {/* The edge back to the hub. Same origin behind a rewrite, so same tab
+            and no rel: this zone was otherwise a dead end. See
+            blode-co/apps/web/.claude/knowledge/zone-conventions.md. */}
+        <span aria-hidden="true">&middot;</span>
+        <a
+          className="rounded-full px-2 py-1 transition-colors hover:text-foreground"
+          href="https://blode.co/projects"
+        >
+          All projects
         </a>
       </footer>
     </>
