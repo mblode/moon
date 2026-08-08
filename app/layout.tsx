@@ -61,10 +61,10 @@ export const metadata: Metadata = {
     description: SOCIAL_DESCRIPTION,
     images: ["https://blode.co/moon/opengraph-image.jpg"],
   },
-  // Absolute on purpose: these live at the blode.co root, not under /moon.
+  // Under the basePath: these are this app's own marks, not blode.co's.
   icons: {
-    icon: "https://blode.co/icon0.svg",
-    apple: "https://blode.co/apple-icon.png",
+    icon: "/moon/icon.svg",
+    apple: "/moon/apple-icon.png",
   },
 };
 
