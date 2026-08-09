@@ -1,6 +1,7 @@
 import Image from "next/image";
 
 import { MoonApp } from "@/components/moon-app";
+import { ZoneBreadcrumb } from "@/components/zone-breadcrumb";
 import avatar from "@/public/avatar-sm.png";
 
 const HEADING =
@@ -16,7 +17,7 @@ const JSON_LD = {
         {
           "@type": "ListItem",
           position: 1,
-          name: "Home",
+          name: "Matthew Blode",
           item: "https://blode.co",
         },
         {
@@ -93,7 +94,12 @@ export default function Page() {
       <MoonApp />
 
       <main className="full-bleed-bg relative z-3 mx-auto max-w-[62ch] px-gutter py-8 text-[1.0625rem]/[1.65]">
-        <p className="mb-6 text-pretty text-[1.4375rem]/[1.35] tracking-[-0.011em]">
+        {/* `product` has to be the exact string in the BreadcrumbList above:
+            Google reads a mismatch between the visible trail and the markup as
+            an error. */}
+        <ZoneBreadcrumb product="Moon Phase Simulator" />
+
+        <p className="mt-6 mb-6 text-pretty text-[1.4375rem]/[1.35] tracking-[-0.011em]">
           The moon as it looks right now, from where you are standing.
         </p>
 

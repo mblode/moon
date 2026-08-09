@@ -31,9 +31,17 @@ const SOCIAL_DESCRIPTION =
   "The moon as it looks right now, from where you are standing. The phase isn’t animated, it’s computed from real orbital positions.";
 
 export const metadata: Metadata = {
+  /*
+   * The bare origin, NOT the zone URL, despite zone-conventions.md Rule 11.
+   * Next 16 already prefixes `basePath` onto the relative `canonical` below, so
+   * the zone URL would resolve it to blode.co/moon/moon. Every image URL here
+   * is absolute and unaffected either way. Verified against build output.
+   */
   metadataBase: new URL("https://blode.co"),
   title: TITLE,
   description: DESCRIPTION,
+  authors: [{ name: "Matthew Blode", url: "https://blode.co" }],
+  creator: "Matthew Blode",
   alternates: { canonical: "/moon" },
   robots: { index: true, follow: true, "max-image-preview": "large" },
   openGraph: {
