@@ -25,9 +25,12 @@ const glideMono = localFont({
 });
 
 const SITE_URL = "https://blode.co/moon";
-const TITLE = "3D Moon Phase Simulator: Tonight’s Phase Where You Are";
+// Sentence case, and led by the phrase people actually search ("moon phase
+// tonight") rather than the product category. The old description ran to 164
+// characters, past the point Google truncates it.
+const TITLE = "Moon phase tonight: a 3D simulator for your location";
 const DESCRIPTION =
-  "An interactive 3D moon phase simulator. See tonight’s phase, illumination and orientation for your exact latitude and longitude, then scrub fifteen days either way.";
+  "See tonight’s moon phase, illumination and orientation in 3D for your exact location, then scrub fifteen days forward or back. Free, no sign-up.";
 const SOCIAL_DESCRIPTION =
   "The moon as it looks right now, from where you are standing. The phase isn’t animated, it’s computed from real orbital positions.";
 
