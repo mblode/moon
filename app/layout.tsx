@@ -24,6 +24,7 @@ const glideMono = localFont({
   display: "swap",
 });
 
+const SITE_URL = "https://blode.co/moon";
 const TITLE = "3D Moon Phase Simulator: Tonight’s Phase Where You Are";
 const DESCRIPTION =
   "An interactive 3D moon phase simulator. See tonight’s phase, illumination and orientation for your exact latitude and longitude, then scrub fifteen days either way.";
@@ -31,35 +32,27 @@ const SOCIAL_DESCRIPTION =
   "The moon as it looks right now, from where you are standing. The phase isn’t animated, it’s computed from real orbital positions.";
 
 export const metadata: Metadata = {
-  /*
-   * The bare origin, NOT the zone URL, despite zone-conventions.md Rule 11.
-   * Next 16 already prefixes `basePath` onto the relative `canonical` below, so
-   * the zone URL would resolve it to blode.co/moon/moon. Every image URL here
-   * is absolute and unaffected either way. Verified against build output.
-   */
-  metadataBase: new URL("https://blode.co"),
+  // The zone URL, not the bare origin (Rule 11). Only correct because the card
+  // is a generated `opengraph-image.tsx` route: Next does not prefix those with
+  // `basePath`, so `metadataBase` supplies the prefix exactly once. Against the
+  // static JPG this replaced, the two would have stacked into `/moon/moon/…`.
+  metadataBase: new URL(SITE_URL),
   title: TITLE,
   description: DESCRIPTION,
   authors: [{ name: "Matthew Blode", url: "https://blode.co" }],
   creator: "Matthew Blode",
-  alternates: { canonical: "/moon" },
+  // Absolute: a relative `/moon` would stack on zone `metadataBase`.
+  alternates: { canonical: SITE_URL },
   robots: { index: true, follow: true, "max-image-preview": "large" },
   openGraph: {
     type: "website",
     siteName: "Matthew Blode",
     locale: "en_US",
-    url: "https://blode.co/moon",
+    url: SITE_URL,
     title: TITLE,
     description: SOCIAL_DESCRIPTION,
-    images: [
-      {
-        url: "https://blode.co/moon/opengraph-image.jpg",
-        type: "image/jpeg",
-        width: 1200,
-        height: 630,
-        alt: "A 3D-rendered moon on a black background, lit from one side, with craters raking across the shadow line.",
-      },
-    ],
+    // No `images` here: `app/opengraph-image.tsx` is the card. Next reuses it
+    // for `twitter:image` too when there is no `twitter-image` file.
   },
   twitter: {
     card: "summary_large_image",
@@ -67,12 +60,12 @@ export const metadata: Metadata = {
     creator: "@mattblode",
     title: TITLE,
     description: SOCIAL_DESCRIPTION,
-    images: ["https://blode.co/moon/opengraph-image.jpg"],
   },
-  // Under the basePath: these are this app's own marks, not blode.co's.
+  // Paths without `/moon`: `metadataBase` already carries the zone, and Next
+  // joins rather than replaces, so spelling the prefix here would double it.
   icons: {
-    icon: "/moon/icon.svg",
-    apple: "/moon/apple-icon.png",
+    icon: "/icon.svg",
+    apple: "/apple-icon.png",
   },
 };
 

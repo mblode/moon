@@ -74,8 +74,15 @@ const nextConfig: NextConfig = {
         headers: [{ key: "Cache-Control", value: IMMUTABLE }],
       },
       {
-        // Not immutable: these two can be re-cut in place without a new URL.
-        source: "/:path(opengraph-image.jpg|avatar-sm.png)",
+        // Not immutable: can be re-cut in place without a new URL.
+        source: "/avatar-sm.png",
+        headers: [{ key: "Cache-Control", value: "public, max-age=604800" }],
+      },
+      {
+        // Generated house card: fetched by other origins, so opt out of the
+        // same-origin CORP the catch-all sets if one is added later. Short
+        // cache so a redesign can land without waiting a year.
+        source: "/opengraph-image",
         headers: [{ key: "Cache-Control", value: "public, max-age=604800" }],
       },
     ]);

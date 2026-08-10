@@ -55,7 +55,7 @@ const JSON_LD = {
         "NASA Lunar Reconnaissance Orbiter surface maps",
         "Physically lit, tidally locked sphere",
       ],
-      screenshot: "https://blode.co/moon/opengraph-image.jpg",
+      screenshot: "https://blode.co/moon/opengraph-image",
       author: { "@id": "https://blode.co/#person" },
       creator: { "@id": "https://blode.co/#person" },
       publisher: { "@id": "https://blode.co/#organization" },
