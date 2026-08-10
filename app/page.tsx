@@ -11,6 +11,18 @@ const JSON_LD = {
   "@context": "https://schema.org",
   "@graph": [
     {
+      "@type": "WebPage",
+      "@id": "https://blode.co/moon/#webpage",
+      about: { "@id": "https://blode.co/moon/#app" },
+      breadcrumb: { "@id": "https://blode.co/moon/#breadcrumb" },
+      description:
+        "An interactive 3D model of the Moon that computes tonight's phase, illumination and orientation for your latitude and longitude, with a thirty day time-travel slider.",
+      inLanguage: "en",
+      isPartOf: { "@id": "https://blode.co/#website" },
+      name: "3D Moon Phase Simulator",
+      url: "https://blode.co/moon",
+    },
+    {
       "@type": "BreadcrumbList",
       "@id": "https://blode.co/moon/#breadcrumb",
       itemListElement: [
@@ -18,7 +30,7 @@ const JSON_LD = {
           "@type": "ListItem",
           position: 1,
           name: "Matthew Blode",
-          item: "https://blode.co",
+          item: "https://blode.co/",
         },
         {
           "@type": "ListItem",
@@ -45,7 +57,14 @@ const JSON_LD = {
       inLanguage: "en",
       isAccessibleForFree: true,
       isFamilyFriendly: true,
-      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+      offers: {
+        "@type": "Offer",
+        availability: "https://schema.org/InStock",
+        // Numeric 0 matches Google's SoftwareApplication example. String "0"
+        // is schema.org-legal but Semrush Site Audit flags it as invalid markup.
+        price: 0,
+        priceCurrency: "USD",
+      },
       description:
         "An interactive 3D model of the Moon that computes tonight's phase, illumination and orientation for your latitude and longitude, with a thirty day time-travel slider.",
       featureList: [
@@ -55,6 +74,7 @@ const JSON_LD = {
         "NASA Lunar Reconnaissance Orbiter surface maps",
         "Physically lit, tidally locked sphere",
       ],
+      image: "https://blode.co/moon/opengraph-image",
       screenshot: "https://blode.co/moon/opengraph-image",
       author: { "@id": "https://blode.co/#person" },
       creator: { "@id": "https://blode.co/#person" },
