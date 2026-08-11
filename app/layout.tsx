@@ -66,9 +66,17 @@ export const metadata: Metadata = {
   },
   // Paths without `/moon`: `metadataBase` already carries the zone, and Next
   // joins rather than replaces, so spelling the prefix here would double it.
+  // File conventions also pick up favicon.ico / icon0.svg / icon1.png /
+  // apple-icon.png from `app/`; this keeps the link tags explicit.
   icons: {
-    icon: "/icon.svg",
+    icon: [
+      { url: "/icon0.svg", type: "image/svg+xml" },
+      { url: "/icon1.png", sizes: "96x96", type: "image/png" },
+    ],
     apple: "/apple-icon.png",
+  },
+  appleWebApp: {
+    title: "Moon",
   },
 };
 
