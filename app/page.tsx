@@ -64,6 +64,7 @@ const JSON_LD = {
         // is schema.org-legal but Semrush Site Audit flags it as invalid markup.
         price: 0,
         priceCurrency: "USD",
+        url: "https://blode.co/moon",
       },
       description:
         "An interactive 3D model of the Moon that computes tonight's phase, illumination and orientation for your latitude and longitude, with a thirty day time-travel slider.",
