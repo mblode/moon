@@ -1,4 +1,5 @@
 import { renderZoneOgImage } from "@/app/og-image-shared";
+import { OgLogo } from "@/app/og-logo";
 
 export {
   OG_CONTENT_TYPE as contentType,
@@ -19,11 +20,9 @@ export const alt = "3D Moon Phase Simulator";
  */
 export default function OpengraphImage() {
   return renderZoneOgImage({
-    badge: "MOON",
-    eyebrow: "blode.co/moon",
-    // Straight apostrophe: the curly one is outside the Glide OG subset and
-    // makes Satori try fonts.googleapis.com at prerender time.
-    subtitle: "Tonight's phase, computed from where you are standing.",
+    background: "#0b1020",
+    color: "#f4f1ea",
+    logo: <OgLogo />,
     title: "Moon",
   });
 }
