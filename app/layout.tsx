@@ -46,7 +46,21 @@ export const metadata: Metadata = {
   creator: "Matthew Blode",
   // Absolute: a relative `/moon` would stack on zone `metadataBase`.
   alternates: { canonical: SITE_URL },
-  robots: { index: true, follow: true, "max-image-preview": "large" },
+  // `max-image-preview` was already lifted; the snippet cap was not, and the
+  // text cap is what AI surfaces read against when deciding how much of a page
+  // they may quote. Nested under `googleBot` to match the other zones.
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+    "max-image-preview": "large",
+  },
   openGraph: {
     type: "website",
     siteName: "Matthew Blode",
