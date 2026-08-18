@@ -48,6 +48,56 @@ const nextConfig: NextConfig = {
     turbopackRustReactCompiler: true,
   },
 
+  redirects() {
+    // The vanity host stays attached to this Vercel project, so the 301 onto
+    // the canonical blode.co zone path has to happen here. Nothing in
+    // blode-co's own config can do it: a request to moon.blode.co never
+    // reaches that app.
+    //
+    // This was the largest canonicalisation gap in the fleet. Search Console
+    // has moon.blode.co/ on 215 impressions over three months, the second
+    // most-surfaced URL on the whole domain, all of it splitting signal away
+    // from blode.co/moon rather than adding to it.
+    //
+    // Paths that already include the basePath are matched first. A bare
+    // `/:path*` captures `moon/x` and sends it to `/moon/moon/x`, a 404 that
+    // Search Console reports as a Redirect error.
+    //
+    // No loop on the live zone: blode.co/moon proxies to moon.zone.blode.co,
+    // whose host does not match these rules.
+    const vanityHost = [{ type: "host" as const, value: "moon.blode.co" }];
+    return Promise.resolve([
+      {
+        basePath: false,
+        destination: "https://blode.co/moon",
+        has: vanityHost,
+        permanent: true,
+        source: "/moon",
+      },
+      {
+        basePath: false,
+        destination: "https://blode.co/moon/:path*",
+        has: vanityHost,
+        permanent: true,
+        source: "/moon/:path*",
+      },
+      {
+        basePath: false,
+        destination: "https://blode.co/moon",
+        has: vanityHost,
+        permanent: true,
+        source: "/",
+      },
+      {
+        basePath: false,
+        destination: "https://blode.co/moon/:path*",
+        has: vanityHost,
+        permanent: true,
+        source: "/:path*",
+      },
+    ]);
+  },
+
   headers() {
     // Textures are content-stable and were being revalidated on every
     // navigation. Next fingerprints and caches /_next/static itself.
