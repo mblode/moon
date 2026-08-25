@@ -88,6 +88,19 @@ redirect there would loop.
 - **The moon is tidally locked in the scene.** The mesh holds still and the light
   direction moves around it, which is how phases work physically. Rotating the
   moon instead would look similar and be wrong.
+- **The moon uses a Lommel-Seeliger diffuse term, not Lambert.** Regolith is
+  retroreflective, so radiance goes as `mu0 / (mu0 + mu)`. `LUNAR_BRDF` in
+  `moon-scene.tsx` patches that into `meshStandardMaterial` through
+  `onBeforeCompile`. It is what makes a full moon render as a flat bright disk
+  instead of a shaded ball — with plain Lambert the limb falls to black, because
+  at full phase `N.L` is just the cosine of the angle from disk centre.
+  Reverting to a stock material to "simplify" re-introduces that. The term is
+  deliberately left un-normalised: doubling it to hold centre brightness would
+  clip the 13.6 percent of albedo-map pixels above 0.5 linear to white at the
+  sunward limb, and the canvas is `flat` with no tone mapping to catch it.
+  Measured on a 2026-08-28 full moon, limb-to-centre brightness went from 0.885
+  to 1.215. The patch reads `directionalLights[0]`, so it assumes the sun stays
+  the scene's only direct light.
 - **Southern-hemisphere orientation is real behaviour, not a detail.** It falls
   out of the zenith-up frame above, so a crescent leans the right way below the
   equator. Anything touching phase naming or orientation needs checking at a
