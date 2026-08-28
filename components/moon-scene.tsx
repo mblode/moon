@@ -54,6 +54,59 @@ const TEXTURE_FIX = new Matrix4().makeBasis(
 const SUN_INTENSITY = Math.PI;
 const LIGHT_DISTANCE = 100;
 
+/**
+ * Lunar diffuse BRDF: Lommel-Seeliger in place of Lambert.
+ *
+ * Regolith is retroreflective — loose, mutually shadowing grains scatter light
+ * back toward its source — so radiance goes as mu0 / (mu0 + mu) rather than as
+ * mu0 alone. The difference is the whole appearance of a full moon. With
+ * Lambert the sun sits behind the viewer, mu0 becomes the cosine of the angle
+ * from disk centre, and the limb falls to black: a shaded ball. Lommel-Seeliger
+ * has mu ~ mu0 at full phase, the mu0 cancels, and the disk goes uniformly
+ * bright right out to the silhouette, which is what the moon actually does.
+ * There is no special case for full moon; it falls out of the ratio.
+ *
+ * three accumulates `directDiffuse` as mu0 * albedo / PI, so dividing by
+ * (mu0 + mu) is the entire correction.
+ *
+ * Deliberately *not* normalised by the factor of 2 that would hold disk-centre
+ * brightness at its Lambert value. The albedo map is a visually stretched LRO
+ * product, not physical albedo: mean linear 0.32, max 0.91, with 13.6 percent
+ * of pixels above 0.5. Doubling clips all of those to flat white at the sunward
+ * limb, where mu is small and the ratio approaches 2. Unnormalised, the product
+ * mu0 / (mu0 + mu) is bounded by 1 by construction, and the brightest value
+ * this can put on screen is 0.89. Nothing clips at any phase, which matters
+ * because the canvas is `flat` and has no tone mapping to catch an overshoot.
+ * The cost is a full moon at half the albedo map's value — dimmer at the centre
+ * than before, far brighter at the limb.
+ *
+ * Only `directDiffuse` is touched, so the ambient earthshine below keeps its
+ * own geometry rather than inheriting the sun's phase angle. This assumes the
+ * scene's one and only direct light is the sun; a second one would need the
+ * correction applied per light instead.
+ */
+const LUNAR_BRDF = `
+#if NUM_DIR_LIGHTS > 0
+	{
+		float lunarMu0 = max( dot( geometryNormal, directionalLights[ 0 ].direction ), 0.0 );
+		float lunarMu = max( dot( geometryNormal, geometryViewDir ), 0.0 );
+		// mu0 <= mu0 + mu, so the result is bounded by 1. The epsilon only keeps
+		// the exact silhouette, where both cosines vanish, out of 0 / 0.
+		reflectedLight.directDiffuse /= max( lunarMu0 + lunarMu, 1e-4 );
+	}
+#endif
+#include <lights_fragment_end>
+`;
+
+/** Shared by the textured moon and its fallback, so the disk does not change
+    brightness the moment the surface maps land. */
+function applyLunarBrdf(shader: { fragmentShader: string }) {
+  shader.fragmentShader = shader.fragmentShader.replace(
+    "#include <lights_fragment_end>",
+    LUNAR_BRDF
+  );
+}
+
 /** Framing for a viewport at least as wide as it is tall. */
 const CAMERA_Z = 5.5;
 /** Disk radius as a share of the half-extent of the narrower axis. */
@@ -148,7 +201,12 @@ function PlainMoon({ sol }: { sol: MoonSolution }) {
   return (
     <mesh ref={mesh}>
       <sphereGeometry args={[1, 64, 64]} />
-      <meshStandardMaterial color="#8b8b88" metalness={0} roughness={1} />
+      <meshStandardMaterial
+        color="#8b8b88"
+        metalness={0}
+        onBeforeCompile={applyLunarBrdf}
+        roughness={1}
+      />
     </mesh>
   );
 }
@@ -183,6 +241,7 @@ function TexturedMoon({ sol, textures }: Props) {
         {...maps}
         metalness={0}
         normalScale={new Vector2(1, 1)}
+        onBeforeCompile={applyLunarBrdf}
         roughness={0.9}
       />
     </mesh>
