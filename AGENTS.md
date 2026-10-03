@@ -24,10 +24,9 @@ Diagnostics are raw `tsc` output with no Next code frames.
 ## Layout
 
 ```
-app/layout.tsx              Glide via next/font/local, all metadata, Agentation
+app/layout.tsx              Inter + Geist Mono via next/font/google, all metadata, Agentation
 app/page.tsx                server component: h1, prose, footer, JSON-LD
 app/globals.css             Tailwind v4 theme + the few non-utility rules
-app/fonts/                  Glide woff2, referenced by next/font/local
 components/moon-app.tsx     "use client": state, console, readouts
 components/moon-scene.tsx   "use client": the r3f scene
 components/ui/              Blode UI (shadcn registry) button, select, spinner
