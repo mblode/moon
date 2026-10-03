@@ -1,27 +1,19 @@
 import { Agentation } from "agentation";
 import type { Metadata, Viewport } from "next";
-import localFont from "next/font/local";
+import { Geist_Mono, Inter } from "next/font/google";
 
 import "./globals.css";
 
-// Glide 4.0.2 — https://github.com/mblode/glide. One variable file per style
-// covers the whole weight axis, so each declares 100-950 rather than a face per
-// weight.
-const glide = localFont({
-  src: [
-    { path: "./fonts/glide-variable.woff2", style: "normal" },
-    { path: "./fonts/glide-variable-italic.woff2", style: "italic" },
-  ],
-  variable: "--font-glide",
-  weight: "100 950",
+const inter = Inter({
   display: "swap",
+  subsets: ["latin"],
+  variable: "--font-inter",
 });
 
-const glideMono = localFont({
-  src: "./fonts/glide-mono.woff2",
-  variable: "--font-glide-mono",
-  weight: "400",
+const geistMono = Geist_Mono({
   display: "swap",
+  subsets: ["latin"],
+  variable: "--font-geist-mono",
 });
 
 const SITE_URL = "https://blode.co/moon";
@@ -103,7 +95,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
-      className={`${glide.variable} ${glideMono.variable} dark h-full antialiased`}
+      className={`${inter.variable} ${geistMono.variable} dark h-full antialiased`}
       lang="en"
     >
       <body className="flex min-h-full flex-col">
