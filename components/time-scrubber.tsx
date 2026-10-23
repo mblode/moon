@@ -325,9 +325,11 @@ export function TimeScrubber({
       >
         <span className="h-3 w-px bg-foreground/40" />
         <span className="mt-1 whitespace-nowrap text-[0.6875rem] text-muted-foreground">
-          {date === null || d === 0
+          {/* Before the clock is read only day zero has a label. Labelling
+              every tick "Now" put dozens of them in the prerendered HTML. */}
+          {d === 0
             ? "Now"
-            : `${weekday.format(date)} ${dayNum.format(date)}`}
+            : date && `${weekday.format(date)} ${dayNum.format(date)}`}
         </span>
       </div>
     );

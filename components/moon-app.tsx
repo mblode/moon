@@ -279,7 +279,11 @@ export function MoonApp() {
       </header>
 
       <div
-        aria-label={`The moon, ${sol.phaseName.toLowerCase()}, ${lit}, seen from ${place.name}`}
+        aria-label={
+          ready
+            ? `The moon, ${sol.phaseName.toLowerCase()}, ${lit}, seen from ${place.name}`
+            : "The moon"
+        }
         className={cn(
           "relative min-h-0 select-none transition-opacity duration-700 overlay:fixed overlay:inset-0",
           ready ? "opacity-100" : "opacity-0"
@@ -319,14 +323,30 @@ export function MoonApp() {
             positioned against the padding box, so this does not move it, and
             the icon's own inset supplies the visual gap. */}
         <div className="relative w-full max-w-[640px] px-9">
+          {/* Until the clock is read on the client, `sol` is solved for the
+              Unix epoch, so the prerendered HTML carried a 1970 phase that
+              crawlers and cached copies showed as tonight's. Hold each line's
+              height with a no-break space instead. */}
           <p className="m-0 text-[1.375rem] tabular-nums tracking-[-0.011em]">
-            {sol.phaseName} <span className="px-[0.15em] opacity-40">·</span>{" "}
-            {lit}
+            {ready ? (
+              <>
+                {sol.phaseName}{" "}
+                <span className="px-[0.15em] opacity-40">·</span> {lit}
+              </>
+            ) : (
+              " "
+            )}
           </p>
           <p className="m-0 text-muted-foreground text-sm tabular-nums">
-            {ready ? dateTime.format(date) : " "}{" "}
-            <span className="px-[0.15em] opacity-40">·</span>{" "}
-            {number.format(sol.distanceKm)} km away
+            {ready ? (
+              <>
+                {dateTime.format(date)}{" "}
+                <span className="px-[0.15em] opacity-40">·</span>{" "}
+                {number.format(sol.distanceKm)} km away
+              </>
+            ) : (
+              " "
+            )}
           </p>
 
           {/* Beside the readout rather than under the ruler, pointing the
@@ -351,7 +371,7 @@ export function MoonApp() {
         {/* Only the phase name is announced. React mutates this text node just
             four times per full sweep, so it self-throttles; putting the live
             numbers in here would queue an announcement per drag event. */}
-        <output className="sr-only">{sol.phaseName}</output>
+        <output className="sr-only">{ready ? sol.phaseName : ""}</output>
 
         <TimeScrubber
           baseMs={nowMs}
